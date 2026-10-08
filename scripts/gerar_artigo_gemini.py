@@ -7,12 +7,15 @@ Pega linhas do calendário com Status = SERP_OK e sem artigo ainda, envia o prom
 como GERADO. A home publica o artigo sozinha, porque ela lista os HTMLs que existem.
 
 Variáveis de ambiente:
-    LLM_PROVIDER     'gemini' (padrão) ou 'cerebras'
-    GEMINI_API_KEY   chave do Gemini (quando LLM_PROVIDER=gemini)
-    GEMINI_MODEL     modelo do Gemini (padrão: gemini-3.8-flash)
-    CEREBRAS_API_KEY chave da Cerebras (quando LLM_PROVIDER=cerebras)
-    CEREBRAS_MODEL   modelo da Cerebras (padrão: qwen-3-235b-a22b-instruct-2507)
-    MAX_ARTIGOS      quantos artigos gerar nesta execução (padrão: 1)
+    LLM_PROVIDER      'gemini' (padrão), 'cerebras' ou 'openrouter'
+    GEMINI_API_KEY    chave do Gemini (quando LLM_PROVIDER=gemini)
+    GEMINI_MODEL      modelo do Gemini (padrão: gemini-3.8-flash)
+    CEREBRAS_API_KEY  chave da Cerebras (quando LLM_PROVIDER=cerebras)
+    CEREBRAS_MODEL    modelo da Cerebras (padrão: qwen-3-235b-a22b-instruct-2507)
+    OPENROUTER_API_KEY chave do OpenRouter (quando LLM_PROVIDER=openrouter)
+    OPENROUTER_MODELS modelos em ordem de preferência, separados por vírgula
+                      (padrão: nemotron 3 super e gemma 4 31b, ambos gratuitos)
+    MAX_ARTIGOS       quantos artigos gerar nesta execução (padrão: 1)
 """
 
 import csv
@@ -29,9 +32,16 @@ HTML_DIR = os.path.join('dados', 'saida', 'html')
 PROVEDOR = os.environ.get('LLM_PROVIDER', 'gemini')
 MODELO_GEMINI = os.environ.get('GEMINI_MODEL', 'gemini-3.8-flash')
 MODELO_CEREBRAS = os.environ.get('CEREBRAS_MODEL', 'qwen-3-235b-a22b-instruct-2507')
+MODELOS_OPENROUTER = [
+    m.strip() for m in os.environ.get(
+        'OPENROUTER_MODELS',
+        'nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-31b-it:free',
+    ).split(',') if m.strip()
+]
 MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
 API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
+URL_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
 
 
 def limpar(texto):
@@ -89,6 +99,8 @@ def com_tentativas(prompt, chave, modelo, maximo=5):
 def chamar(prompt, chave, modelo):
     if PROVEDOR == 'cerebras':
         return gerar_cerebras(prompt, chave, modelo)
+    if PROVEDOR == 'openrouter':
+        return gerar_openrouter(prompt, chave, modelo)
     return gerar_gemini(prompt, chave, modelo)
 
 
@@ -118,8 +130,34 @@ def gerar_cerebras(prompt, chave, modelo):
     return limpar(r.json()['choices'][0]['message']['content'])
 
 
+def gerar_openrouter(prompt, chave, modelo):
+    r = requests.post(
+        URL_OPENROUTER,
+        headers={'Authorization': f'Bearer {chave}', 'Content-Type': 'application/json'},
+        json={'model': modelo, 'messages': [{'role': 'user', 'content': prompt}], 'max_tokens': 8000},
+        timeout=120,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
+    return limpar(r.json()['choices'][0]['message']['content'])
+
+
+def gerar_com_lista(prompt, chave, modelos):
+    """Tenta cada modelo da lista na ordem. Passa para o próximo só em erro temporário."""
+    ultimo_erro = None
+    for modelo in modelos:
+        try:
+            return com_tentativas(prompt, chave, modelo)
+        except (RuntimeError, requests.RequestException) as e:
+            if not eh_temporario(e):
+                raise
+            print(f'↪️ {modelo} indisponível agora; tentando o próximo')
+            ultimo_erro = e
+    raise ultimo_erro
+
+
 def main():
-    nome_chave = 'CEREBRAS_API_KEY' if PROVEDOR == 'cerebras' else 'GEMINI_API_KEY'
+    nome_chave = {'cerebras': 'CEREBRAS_API_KEY', 'openrouter': 'OPENROUTER_API_KEY'}.get(PROVEDOR, 'GEMINI_API_KEY')
     chave = os.environ.get(nome_chave)
     if not chave:
         print(f'❌ {nome_chave} não configurada. Abortando.')
@@ -147,25 +185,30 @@ def main():
         prompt_path = linha['GEMINI_Prompt_Arquivo'].strip()
         base = os.path.basename(prompt_path).replace('.prompt.md', '')
         nome_html = f'{base}.html'
-        print(f'🤖 Gerando {nome_html} ({PROVEDOR}: {modelo})...')
+        quem = ' > '.join(MODELOS_OPENROUTER) if PROVEDOR == 'openrouter' else modelo
+        print(f'🤖 Gerando {nome_html} ({PROVEDOR}: {quem})...')
         try:
             with open(prompt_path, encoding='utf-8') as f:
                 prompt = f.read()
-            try:
-                html = com_tentativas(prompt, chave, modelo)
-            except (RuntimeError, requests.RequestException) as e:
-                # Só o Gemini tem modelos de reserva
-                if PROVEDOR == 'gemini' and 'HTTP 404' in str(e):
-                    novo = modelo_disponivel(chave)
-                elif PROVEDOR == 'gemini' and eh_temporario(e):
-                    novo = modelo_alternativo(chave, modelo)
-                else:
-                    raise
-                if not novo or novo == modelo:
-                    raise
-                print(f'↪️ {modelo} indisponível agora; tentando {novo}')
-                modelo = novo
-                html = com_tentativas(prompt, chave, modelo)
+            if PROVEDOR == 'openrouter':
+                # Lista de modelos gratuitos: tenta um por vez
+                html = gerar_com_lista(prompt, chave, MODELOS_OPENROUTER)
+            else:
+                try:
+                    html = com_tentativas(prompt, chave, modelo)
+                except (RuntimeError, requests.RequestException) as e:
+                    # Só o Gemini tem modelos de reserva
+                    if PROVEDOR == 'gemini' and 'HTTP 404' in str(e):
+                        novo = modelo_disponivel(chave)
+                    elif PROVEDOR == 'gemini' and eh_temporario(e):
+                        novo = modelo_alternativo(chave, modelo)
+                    else:
+                        raise
+                    if not novo or novo == modelo:
+                        raise
+                    print(f'↪️ {modelo} indisponível agora; tentando {novo}')
+                    modelo = novo
+                    html = com_tentativas(prompt, chave, modelo)
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1

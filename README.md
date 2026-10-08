@@ -18,7 +18,7 @@ Settings → Secrets and variables → Actions:
 | Secret | Para que serve |
 |--------|----------------|
 | `SERPAPI_KEY` | Pesquisa SERP via serpapi.com (obrigatória) |
-| `GEMINI_API_KEY` | Geração dos artigos (obrigatória) |
+| `OPENROUTER_API_KEY` | Geração dos artigos com modelos gratuitos do OpenRouter (obrigatória) |
 | `PEXELS_API_KEY` | Fotos das miniaturas (workflow "Baixar miniaturas") |
 
 ### 2. Acompanhar a Automação
@@ -29,7 +29,8 @@ Settings → Secrets and variables → Actions:
 - **"HTTP 401 na SerpAPI"**: a chave `SERPAPI_KEY` está inválida. Copie a chave exata do painel do serpapi.com e atualize o secret.
 - **"HTTP 429 na SerpAPI"**: o limite de buscas do plano foi atingido (250/mês no gratuito).
 - **Execução vermelha com "Nenhum dos artigos foi pesquisado"**: a pesquisa falhou em todas as linhas. Veja a causa acima.
-- **Gemini falhou**: confira `GEMINI_API_KEY` e o nome do modelo em `GEMINI_MODEL` (padrão `gemini-2.5-flash`).
+- **Geração falhou em todos os modelos**: confira `OPENROUTER_API_KEY` e a lista `OPENROUTER_MODELS` no script. Modelos gratuitos podem sair do ar ou atingir o limite diário; o log mostra qual respondeu.
+- **Modelos usados** (gratuitos, em ordem): `nvidia/nemotron-3-super-120b-a12b:free` e `google/gemma-4-31b-it:free`.
 
 ### Geração manual (opcional)
 - Abra `dados/calendario_blog_1_ano.csv`
