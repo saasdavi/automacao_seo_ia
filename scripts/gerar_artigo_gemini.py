@@ -38,6 +38,7 @@ ANALISE_DIR = os.path.join('dados', 'saida', 'md')
 PROVEDOR = os.environ.get('LLM_PROVIDER', 'openrouter')
 MODELO_GEMINI = os.environ.get('GEMINI_MODEL', 'gemini-3.8-flash')
 MODELO_CEREBRAS = os.environ.get('CEREBRAS_MODEL', 'qwen-3-235b-a22b-instruct-2507')
+RODADAS_REESCRITA = int(os.environ.get('RODADAS_REESCRITA') or 2)  # reescritas por modelo após reprovação
 MODELOS_OPENROUTER = [
     m.strip() for m in os.environ.get(
         'OPENROUTER_MODELS',
@@ -300,58 +301,92 @@ def gerar_openrouter(prompt, chave, modelo):
     return limpar(conteudo)
 
 
-def gerar_com_lista(prompt, chave, modelos):
-    """Tenta cada modelo na ordem até um artigo passar na validação.
+def gerar_uma(prompt, chave, modelo):
+    """Uma geração com um modelo. Devolve o texto, ou None para passar ao próximo modelo.
 
-    Em limite de uso (429) espera o tempo indicado pelo OpenRouter e tenta o mesmo
-    modelo de novo, no máximo 2 vezes. Passa ao próximo modelo em erro temporário,
-    resposta vazia ou artigo reprovado. Devolve (html, análise).
-    """
+    Em limite de uso (429) espera o tempo indicado pelo OpenRouter, no máximo 2 vezes.
+    No Gemini, 404 ou ocupado trocam para outro modelo da mesma família, uma vez."""
+    esperas = 0
+    while True:
+        try:
+            return com_tentativas(prompt, chave, modelo)
+        except LimiteOpenRouter as e:
+            if esperas < 2:
+                esperas += 1
+                espera = min(e.espera, 600)
+                print(f'⏳ {modelo} com limite de uso; esperando {espera}s ({esperas}/2)')
+                time.sleep(espera)
+                continue
+            print(f'↪️ {modelo} sem vaga após 2 esperas; tentando o próximo')
+            return None
+        except (RuntimeError, requests.RequestException) as e:
+            if PROVEDOR == 'gemini' and ('HTTP 404' in str(e) or eh_temporario(e)):
+                novo = modelo_disponivel(chave) if 'HTTP 404' in str(e) else modelo_alternativo(chave, modelo)
+                if novo and novo != modelo:
+                    print(f'↪️ {modelo} indisponível agora; tentando {novo}')
+                    try:
+                        return com_tentativas(prompt, chave, novo)
+                    except (RuntimeError, requests.RequestException) as e2:
+                        print(f'↪️ {novo} também falhou: {e2}')
+                        return None
+            # 403/404 = modelo indisponível para esta chave: passa ao próximo. 401 (chave) segue fatal.
+            indisponivel = 'HTTP 403' in str(e) or 'HTTP 404' in str(e)
+            if not eh_temporario(e) and 'resposta vazia' not in str(e) and not indisponivel:
+                raise
+            print(f'↪️ {modelo} indisponível agora; tentando o próximo ({e})')
+            return None
+
+
+def montar_reescrita(prompt, html_anterior, problemas):
+    """Mensagem de correção: o artigo anterior e a lista exata do que reprovou."""
+    palavras = len(re.sub(r'<[^>]+>', ' ', html_anterior or '').split())
+    faltam = max(0, 1400 - palavras)
+    linhas = [f'- {p}' for p in problemas]
+    if any('palavras' in p for p in problemas):
+        linhas.append(f'- O artigo tem {palavras} palavras no corpo. Acrescente pelo menos {faltam + 100} palavras de conteúdo útil (não enchimento).')
+    return (f"{prompt}\n\n"
+            "=================== REESCRITA ===================\n"
+            "O artigo abaixo foi reprovado na validação. Corrija SOMENTE os problemas listados e mantenha o que já estava bom.\n"
+            "Devolva o documento HTML completo (do <!DOCTYPE html> até </html>) e, depois, a análise de pontuação.\n\n"
+            "PROBLEMAS A CORRIGIR:\n" + "\n".join(linhas) + "\n\n"
+            "ARTIGO REPROVADO:\n" + (html_anterior or '(sem HTML válido na resposta anterior)'))
+
+
+def gerar_validado(prompt, chave, modelos, rodadas):
+    """Gera, valida e, se reprovar, pede a correção com a lista de problemas.
+
+    Para cada modelo: até `rodadas` reescritas. Só passa ao próximo modelo depois de
+    esgotar as reescritas. Devolve (html, análise)."""
     ultimo_erro = None
     for modelo in modelos:
-        esperas = 0
-        while True:
+        anterior, problemas = None, None
+        for n in range(rodadas + 1):
+            atual = prompt if n == 0 else montar_reescrita(prompt, anterior, problemas)
+            if n:
+                print(f'✏️ {modelo}: reescrita {n}/{rodadas} com a lista de problemas')
+            texto = gerar_uma(atual, chave, modelo)
+            if texto is None:
+                break
             try:
-                texto = com_tentativas(prompt, chave, modelo)
-            except LimiteOpenRouter as e:
-                if esperas < 2:
-                    esperas += 1
-                    espera = min(e.espera, 600)
-                    print(f'⏳ {modelo} com limite de uso; esperando {espera}s ({esperas}/2)')
-                    time.sleep(espera)
-                    continue
-                print(f'↪️ {modelo} sem vaga após 2 esperas; tentando o próximo')
+                html, analise = separar_html(texto)
+            except RuntimeError as e:
+                problemas, anterior = [str(e)], texto
+                print(f'↪️ {modelo} reprovado: {e}')
                 ultimo_erro = e
-                texto = None
-            except (RuntimeError, requests.RequestException) as e:
-                # 403/404 = modelo indisponível para esta chave: passa ao próximo. 401 (chave) segue fatal.
-                indisponivel = 'HTTP 403' in str(e) or 'HTTP 404' in str(e)
-                if not eh_temporario(e) and 'resposta vazia' not in str(e) and not indisponivel:
-                    raise
-                print(f'↪️ {modelo} indisponível agora; tentando o próximo ({e})')
-                ultimo_erro = e
-                texto = None
-            break
-        if texto is None:
-            continue
-        try:
-            html, analise = separar_html(texto)
+                continue
             chave_pexels = os.environ.get('PEXELS_API_KEY', '').strip()
             if chave_pexels:
                 html = inserir_imagens_pexels(html, chave_pexels)
-        except RuntimeError as e:
-            print(f'↪️ {modelo} reprovado: {e}')
-            ultimo_erro = e
-            continue
-        problemas = validar_artigo(html) + validar_imagens(html)
-        nota = problema_nota(analise)
-        if nota:
-            problemas.append(nota)
-        if not problemas:
-            return html, analise
-        print(f'↪️ {modelo} reprovado: {"; ".join(problemas)}')
-        ultimo_erro = RuntimeError('; '.join(problemas))
-    raise ultimo_erro
+            problemas = validar_artigo(html) + validar_imagens(html)
+            nota = problema_nota(analise)
+            if nota:
+                problemas.append(nota)
+            if not problemas:
+                return html, analise
+            anterior = html
+            print(f'↪️ {modelo} reprovado: {"; ".join(problemas)}')
+            ultimo_erro = RuntimeError('; '.join(problemas))
+    raise ultimo_erro or RuntimeError('nenhum modelo gerou artigo')
 
 
 def main():
@@ -389,35 +424,9 @@ def main():
         try:
             with open(prompt_path, encoding='utf-8') as f:
                 prompt = f.read().replace('{{DATA_HOJE}}', data_brasilia())
-            if PROVEDOR == 'openrouter':
-                # Lista de modelos: separa e valida dentro do laço, passa ao próximo se reprovar
-                html, analise = gerar_com_lista(prompt, chave, MODELOS_OPENROUTER)
-            else:
-                try:
-                    html = com_tentativas(prompt, chave, modelo)
-                except (RuntimeError, requests.RequestException) as e:
-                    # Só o Gemini tem modelos de reserva
-                    if PROVEDOR == 'gemini' and 'HTTP 404' in str(e):
-                        novo = modelo_disponivel(chave)
-                    elif PROVEDOR == 'gemini' and eh_temporario(e):
-                        novo = modelo_alternativo(chave, modelo)
-                    else:
-                        raise
-                    if not novo or novo == modelo:
-                        raise
-                    print(f'↪️ {modelo} indisponível agora; tentando {novo}')
-                    modelo = novo
-                    html = com_tentativas(prompt, chave, modelo)
-                html, analise = separar_html(html)
-                chave_pexels = os.environ.get('PEXELS_API_KEY', '').strip()
-                if chave_pexels:
-                    html = inserir_imagens_pexels(html, chave_pexels)
-                problemas = validar_artigo(html) + validar_imagens(html)
-                nota = problema_nota(analise)
-                if nota:
-                    problemas.append(nota)
-                if problemas:
-                    raise RuntimeError('; '.join(problemas))
+            lista = MODELOS_OPENROUTER if PROVEDOR == 'openrouter' else [modelo]
+            rodadas = RODADAS_REESCRITA if PROVEDOR != 'openrouter' else min(RODADAS_REESCRITA, 1)
+            html, analise = gerar_validado(prompt, chave, lista, rodadas)
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1
