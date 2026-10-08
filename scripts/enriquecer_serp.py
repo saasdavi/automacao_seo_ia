@@ -177,6 +177,8 @@ def main():
     for col in novas_colunas:
         if col not in df.columns:
             df[col] = ''
+        # Colunas vazias no CSV são lidas como float64 e não aceitam texto (quebra o pandas atual)
+        df[col] = df[col].astype(object)
 
     # Garante a pasta de saída dos arquivos Markdown
     os.makedirs(SAIDA_MD_DIR, exist_ok=True)
