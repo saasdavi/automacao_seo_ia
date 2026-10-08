@@ -28,15 +28,23 @@ def buscar_serpapi(keyword, num=5):
         "engine": "google", "q": keyword, "api_key": SERPAPI_KEY,
         "gl": "br", "hl": "pt", "google_domain": "google.com.br", "num": num,
     }
-    try:
-        response = requests.get("https://serpapi.com/search.json", params=params, timeout=20)
-        if response.status_code != 200:
-            # Diagnóstico: 401 = chave inválida; 429 = limite de buscas do plano
-            print(f"⚠️ HTTP {response.status_code} na SerpAPI para '{keyword}': {response.text[:150]}")
+    # Até 2 tentativas: a SerpAPI às vezes demora mais que um timeout curto
+    dados = None
+    for tentativa in (1, 2):
+        try:
+            response = requests.get("https://serpapi.com/search.json", params=params, timeout=60)
+            if response.status_code != 200:
+                # Diagnóstico: 401 = chave inválida; 429 = limite de buscas do plano
+                print(f"⚠️ HTTP {response.status_code} na SerpAPI para '{keyword}': {response.text[:150]}")
+                return None
+            dados = response.json()
+            break
+        except requests.Timeout as e:
+            print(f"⏱️ Timeout na SerpAPI para '{keyword}' (tentativa {tentativa}): {e}")
+        except Exception as e:
+            print(f"Erro na API para {keyword}: {e}")
             return None
-        dados = response.json()
-    except Exception as e:
-        print(f"Erro na API para {keyword}: {e}")
+    if dados is None:
         return None
     # Converte para a estrutura que o restante do script já usa
     return {
