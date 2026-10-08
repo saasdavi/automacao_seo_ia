@@ -37,6 +37,6 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action SERP"
-        git add dados/calendario_blog_1_ano.csv
+        git add dados/calendario_blog_1_ano.csv dados/saida/md/
         git diff --staged --quiet || git commit -m "🤖 SERP: +${{ github.event.inputs.lotes }} artigos processados"
         git push
