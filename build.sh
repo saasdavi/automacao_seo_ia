@@ -4,7 +4,7 @@
 set -e
 
 echo "📦 Instalando dependências..."
-pip install -q pandas requests beautifulsoup4
+uv pip install -q pandas requests beautifulsoup4
 
 echo "🔨 Gerando homepage..."
 python scripts/gerar_home.py
