@@ -1,0 +1,39 @@
+name: Enriquecer SERP do Calendário
+
+on:
+  workflow_dispatch:
+    inputs:
+      lotes:
+        description: 'Quantos artigos processar agora? (Recomendado: 10)'
+        required: true
+        default: '10'
+        type: number
+
+jobs:
+  enriquecer:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install pandas requests beautifulsoup4
+
+    - name: Rodar script SERP
+      env:
+        SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+        MAX_ROWS: ${{ github.event.inputs.lotes }}
+      run: python scripts/enriquecer_serp.py
+
+    - name: Commit CSV atualizado
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action SERP"
+        git add dados/calendario_blog_1_ano.csv
+        git diff --staged --quiet || git commit -m "🤖 SERP: +${{ github.event.inputs.lotes }} artigos processados"
+        git push

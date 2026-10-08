@@ -1,59 +1,39 @@
-# automacao_seo_ia — 🧠 Agendador SEO de Artigos
+# 🚀 Blog Automação SEO
 
-Pipeline completo de **agendamento de artigos** baseado em palavras-chave reais do
-Google Keyword Planner: **1.095 artigos** distribuídos em **365 dias**
-(08/10/2026 → 07/10/2027), com **3 publicações por dia** (09h, 12h, 20h).
+## Fluxo de Trabalho
 
-## 📦 Estrutura
+1. **GitHub Action** extrai dados SERP das keywords da planilha
+2. **Script Python** analisa concorrentes, H2s, PAA e long tails
+3. **Briefing** é gerado automaticamente na coluna `GEMINI_Prompt_Pronto`
+4. **Gemini** lê o briefing + prompt mestre e gera artigo HTML
+5. **Você** revisa e publica
 
-```
-data/raw/          # keyword_stats.csv + cronograma.txt (entradas)
-data/processed/    # schedule.json / .csv / .ics + report.md (saídas)
-src/               # parser, validator, scheduler, exporter, api, cli
-tests/             # pytest com cobertura >= 80%
-scripts/           # run_pipeline.sh e seed_data.py
-```
+## Como Usar
 
-## 🚀 Instalação
+### 1. Configurar Secrets no GitHub
+- Vá em: Settings → Secrets and variables → Actions
+- Adicione: `SERPER_API_KEY` (chave gratuita da Serper.dev - 2.500 buscas/mês)
 
-```bash
-pip install -e ".[dev]"
-```
+### 2. Rodar a Automação
+- Vá em: Actions → "Enriquecer SERP do Calendário"
+- Clique em "Run workflow"
+- Escolha quantos artigos processar (recomendado: 10)
 
-## 🧩 Comandos
+### 3. Gerar Artigo com Gemini
+- Abra `dados/calendario_blog_1_ano.csv`
+- Copie o conteúdo da coluna `GEMINI_Prompt_Pronto` da linha desejada
+- Cole no chat do Gemini
+- Receba o artigo HTML pronto com nota de qualidade
 
-```bash
-python -m src.cli validate                        # valida as premissas do cronograma
-python -m src.cli export --format json,csv,ics,md # gera os arquivos de saída
-python -m src.cli serve --port 8000               # sobe a API FastAPI
-```
+## Estrutura de Colunas da Planilha Final
 
-## 🐳 Docker
+| Bloco | Colunas |
+|-------|---------|
+| A - Dados Base | Dia, Data, Horário, Tema, Palavra-chave principal, Volume, Concorrência, Variações |
+| B - SERP (auto) | Status, Data Consulta, Dificuldade Real, Top5 URLs, H2s Comuns, PAA, Pesquisas Relacionadas, Long Tails, Lacunas, Fontes Oficiais, Autoridades, Divergências |
+| C - Gemini (auto) | GEMINI_Prompt_Pronto, Nota Autoavaliada, Link Artigo Gerado, Data Publicação |
 
-```bash
-docker-compose up --build
-```
-
-## 🌐 Endpoints da API
-
-| Rota | Descrição |
-|---|---|
-| `GET /articles?page=1&size=50` | Lista paginada de artigos |
-| `GET /articles/{id}` | Detalhe de um artigo (`art-0001`) |
-| `GET /articles/today` | Artigos do dia corrente |
-| `GET /articles/by-theme/{theme}` | Artigos por tema |
-| `GET /stats` | Estatísticas gerais do cronograma |
-
-## ✅ Premissas de negócio
-
-1. Início 08/10/2026; 365 dias × 3 artigos/dia = 1.095 artigos.
-2. Palavra-chave principal = maior volume do grupo; sinônimos viram variações.
-3. Volumes do Keyword Planner são faixas arredondadas (ordem de prioridade).
-4. Distribuição por tema segue a tabela de potencial 🔥 (ver `src/scheduler.py`).
-5. Filtros: sem hardware (RAM/SSD…), marcas ou nomes de autores.
-
-## 🧪 Testes
-
-```bash
-pytest            # roda testes + relatório de cobertura
-```
+## Créditos Gratuitos
+- Serper.dev: 2.500 buscas/mês grátis
+- GitHub Actions: 2.000 minutos/mês grátis
+- Gemini API: camada gratuita generosa
