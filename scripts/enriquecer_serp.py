@@ -224,6 +224,10 @@ DADOS SERP (Extraídos ao vivo):
 CONCORRENTES (Top 5):
 {dados_serp['concorrentes_formatado']}
 
+TEXTO DAS PÁGINAS CONCORRENTES (REFERÊNCIA DE LEITURA):
+Use para entender o assunto, os fatos e a ordem dos temas. NÃO copie frases nem trechos: escreva tudo com suas palavras. Nunca reproduza mais de 8 palavras seguidas de uma página concorrente. Fontes do artigo continuam sendo só as URLs oficiais da seção FONTES.
+{dados_serp['referencias_formatado']}
+
 PERGUNTAS DO GOOGLE (PAA):
 {dados_serp['paa_formatado']}
 
@@ -342,7 +346,10 @@ def main():
 
         concorrentes_str = [f"{i+1}. {a['titulo']} | {a['url']} | {a['tipo']} | ~{a['palavras']} palavras | H2s: {'; '.join(a['h2s'])}"
                             for i, a in enumerate(analises)]
+        referencias = [(a['url'], a['titulo'], ' '.join(a['texto'].split()[:1500])) for a in lidas[:3]]
         dados_serp_dict = {
+            'referencias_formatado': "\n\n".join(
+                f"### Referência {i+1}: {t or '(sem título)'}\nURL: {u}\n{x}" for i, (u, t, x) in enumerate(referencias)) or "(nenhuma página lida)",
             'dificuldade': dificuldade,
             'fontes': [f['url'] for f in fontes],
             'lacunas': lacunas,
@@ -388,6 +395,9 @@ def main():
         serp_md += ["", "## LONG TAILS VISTAS NAS PÁGINAS LIDAS (termo | em quantas páginas aparece | na planilha?)"] + (
             [f"- {t} | {n} de {len(lidas)} | volume desconhecido" for t, n in long_tails]
             or ["(nenhum termo de 3+ palavras apareceu em 2 ou mais páginas lidas)"])
+        serp_md += ["", "## TEXTO DAS PÁGINAS LIDAS (referência de leitura; não copiar frases)"] + (
+            [f"### {t or '(sem título)'}\nURL: {u}\n{' '.join(a['texto'].split()[:1500])}" for u, t, a in
+             [(x['url'], x['titulo'], x) for x in lidas[:3]]] or ["(nenhuma página lida)"])
         serp_md += ["", "## LACUNAS (perguntas do Google que nenhum concorrente lido responde)"] + ([f"- {l}" for l in lacunas] or ["(nenhuma)"])
         serp_md += ["", f"## DIFICULDADE: {dificuldade.lower()} (autoridades no top 5: {len(autoridades)})"]
         serp_md += ["", "## DIVERGÊNCIAS COM A PLANILHA"] + ([f"- {d}" for d in divergencias] or ["(nenhuma)"])
