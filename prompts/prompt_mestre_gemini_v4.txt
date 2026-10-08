@@ -5,6 +5,8 @@ FLUXO OBRIGATÓRIO
 ═══════════════════════════════════════════
 PESQUISAR → ESCREVER → AUDITAR → CORRIGIR → ENTREGAR
 
+A auditoria é feita por você em silêncio. Os resultados da auditoria não entram no artigo (ver ENTREGA).
+
 ═══════════════════════════════════════════
 DIRETRIZES GOOGLE (2025/2026)
 ═══════════════════════════════════════════
@@ -14,24 +16,33 @@ DIRETRIZES GOOGLE (2025/2026)
 **YMYL**: Saúde exige o mais alto padrão de qualidade e confiabilidade
 
 ═══════════════════════════════════════════
-FORMATO DE ENTREGA — HTML COMPLETO COM SCHEMA
+ENTREGA — O ARTIGO É SÓ O HTML
 ═══════════════════════════════════════════
 
-Entregue dentro de um único bloco de código copiável com:
+A primeira parte da resposta é o documento HTML completo, do <!DOCTYPE html> até </html>. Nada pode vir antes do <!DOCTYPE html> e nada pode aparecer dentro da página além do artigo.
+
+Data de publicação do artigo: {{DATA_HOJE}} (use este valor em datePublished e dateModified, no formato ISO 8601 com fuso -03:00).
+
+O HTML deve conter:
 - <!DOCTYPE html> com lang="pt-BR"
-- <head> com meta charset, viewport, title (≤60 carac), meta description (≤155 carac)
-- Schema Markup JSON-LD tipo MedicalWebPage com: author (com CRM), reviewedBy (com CRM), publisher, medicalAudience, about (MedicalCondition com sameAs Wikidata), citation
-- CSS interno profissional (fonte Georgia, max-width 760px, cores #006400 para destaques)
-- <article> com author-box (nome, CRM, titulação, revisor)
+- <head> com meta charset, viewport, title (≤60 caracteres), meta description (≤155 caracteres)
+- Schema Markup JSON-LD tipo MedicalWebPage com: headline, description, datePublished, dateModified, inLanguage "pt-BR", publisher (name: "Mente Leve"), medicalAudience, about (MedicalCondition), citation (fontes do artigo)
+- CSS interno (fonte Georgia, max-width 760px, cores #006400 para destaques)
+- <article> com o artigo
 - H1 com palavra-chave
 - Parágrafos ≤50 palavras cada
-- Mínimo 1.500 palavras no corpo
+- Mínimo 1.500 palavras no corpo (conte as palavras antes de entregar; se estiver abaixo, expanda com conteúdo útil, não com enchimento)
 - H2s baseados nas Perguntas do Google (PAA)
 - Pelo menos 1 tabela comparativa
 - Seção "Resumindo" antes das Fontes
 - Seção "Fontes" com mínimo 6 URLs diretas clicáveis
 - Aviso final: "Este conteúdo é informativo e não substitui a orientação de um profissional de saúde."
-- Script JavaScript para carregar imagens do Pexels API (4 imagens: capa + 3 no corpo) com alt text único de 50-125 caracteres
+
+IMAGENS: não escreva script nem chave de API no HTML. Só inclua uma imagem (<figure> com <img>) se souber uma URL real e pública de imagem de uso livre; caso contrário, não inclua imagem. O alt text, quando houver imagem, tem 50 a 125 caracteres e descreve o que aparece.
+
+AUTOR E REVISOR: não invente nome, CRM, titulação nem revisor médico. Não escreva assinatura de médico nem caixa de autor com credenciais. Não use a palavra "CRM" no artigo nem no JSON-LD.
+
+Depois do </html>, a auditoria de pontuação (ver ANÁLISE DE PONTUAÇÃO) pode ser escrita. Ela é interna e não é publicada.
 
 ═══════════════════════════════════════════
 REGRAS DE CONTEÚDO
@@ -39,7 +50,7 @@ REGRAS DE CONTEÚDO
 1. Palavra-chave no H1, primeiro parágrafo e pelo menos 1 H2
 2. Hierarquia: H1 → H2 → H3 (sem pular níveis)
 3. Mínimo 3 links contextuais para fontes oficiais DENTRO do corpo
-4. Alt text único para cada imagem (50-125 caracteres, com keyword quando natural)
+4. Alt text único para cada imagem usada (50-125 caracteres, com keyword quando natural)
 
 PROIBIDO:
 - Palavra "cura"
@@ -49,6 +60,8 @@ PROIBIDO:
 - Promessas de resultado garantido
 - Fontes com homepage genérica (www.gov.br sem path)
 - Personas falsas ou bios fabricadas
+- Nomes, CRM ou titulações inventados
+- URLs de exemplo (example.com) no JSON-LD
 
 OBRIGATÓRIO:
 - Seção "Resumindo" antes das Fontes
@@ -56,12 +69,13 @@ OBRIGATÓRIO:
 - Mínimo 6 fontes oficiais com URL direta
 - Ressalva quando citar estudo em modelo animal
 - Ressalva quando usar termo popular não-formal
-- Assinatura com nome, CRM e titulação do autor + revisor médico
 - Schema Markup JSON-LD com MedicalWebPage no <head>
 
 ═══════════════════════════════════════════
-ANÁLISE DE PONTUAÇÃO (ENTREGAR NO FINAL)
+ANÁLISE DE PONTUAÇÃO (INTERNA, DEPOIS DO </html>)
 ═══════════════════════════════════════════
+
+Esta parte é só para controle interno. Ela é guardada fora do site e não faz parte do artigo.
 
 ## Análise de Pontuação — [Título do Artigo]
 
@@ -77,10 +91,6 @@ ANÁLISE DE PONTUAÇÃO (ENTREGAR NO FINAL)
 | Originalidade e naturalidade | 1,0 | X,X | ... |
 | **Total** | **10,0** | **X,X** | |
 
-### Correções E-E-A-T aplicadas
-| Problema | Solução |
-|---|---|
-
 ### Lacunas do topo cobertas
 | Lacuna | Coberta (sim/não) |
 |---|---|
@@ -89,8 +99,8 @@ ANÁLISE DE PONTUAÇÃO (ENTREGAR NO FINAL)
 | Campo | Status |
 |---|---|
 | @type MedicalWebPage | ✅/❌ |
-| author com CRM | ✅/❌ |
-| reviewedBy com CRM | ✅/❌ |
+| datePublished com data de hoje | ✅/❌ |
 | about com MedicalCondition | ✅/❌ |
+| Sem CRM e sem example.com | ✅/❌ |
 
 Status: PRONTO PARA IMPORTAÇÃO (se nota ≥ 9,0)

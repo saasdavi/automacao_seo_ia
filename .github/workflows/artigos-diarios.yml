@@ -42,13 +42,16 @@ jobs:
     - name: Pesquisa SERP (SerpAPI) do próximo artigo da fila
       env:
         SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
-        MAX_ROWS: '1'
+        # 5 pesquisas por dia no total (cota gratuita do SerpAPI: 250/mês).
+        # 09h e 12h: 2 cada; 20h: 1.
+        MAX_ROWS: ${{ github.event.schedule == '0 23 * * *' && '1' || '2' }}
       run: python scripts/enriquecer_serp.py
 
     - name: Gerar artigo com IA
       env:
-        # Agendado: sempre gemini. Manual: escolha em "Run workflow" (gemini ou openrouter)
-        LLM_PROVIDER: ${{ github.event.inputs.provedor || 'gemini' }}
+        # Padrão: OpenRouter (modelos gratuitos, lista em OPENROUTER_MODELS no script).
+        # Disparo manual pode escolher 'gemini' na caixa "provedor".
+        LLM_PROVIDER: ${{ github.event.inputs.provedor || 'openrouter' }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         MAX_ARTIGOS: '1'

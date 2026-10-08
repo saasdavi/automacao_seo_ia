@@ -6,8 +6,11 @@ Pega linhas do calendário com Status = SERP_OK e sem artigo ainda, envia o prom
 (GEMINI_Prompt_Arquivo) à IA, salva o HTML em dados/saida/html/ e marca a linha
 como GERADO. A home publica o artigo sozinha, porque ela lista os HTMLs que existem.
 
+O que a IA escreve depois do </html> (análise interna, checklist, nota) não vai
+para o artigo: é salvo em dados/saida/md/<base>.analise.md, que o site não publica.
+
 Variáveis de ambiente:
-    LLM_PROVIDER      'gemini' (padrão), 'cerebras' ou 'openrouter'
+    LLM_PROVIDER      'openrouter' (padrão), 'gemini' ou 'cerebras'
     GEMINI_API_KEY    chave do Gemini (quando LLM_PROVIDER=gemini)
     GEMINI_MODEL      modelo do Gemini (padrão: gemini-3.8-flash)
     CEREBRAS_API_KEY  chave da Cerebras (quando LLM_PROVIDER=cerebras)
@@ -19,6 +22,7 @@ Variáveis de ambiente:
 """
 
 import csv
+import datetime
 import os
 import random
 import re
@@ -29,7 +33,8 @@ import requests
 
 CSV_PATH = os.path.join('dados', 'calendario_blog_1_ano.csv')
 HTML_DIR = os.path.join('dados', 'saida', 'html')
-PROVEDOR = os.environ.get('LLM_PROVIDER', 'gemini')
+ANALISE_DIR = os.path.join('dados', 'saida', 'md')
+PROVEDOR = os.environ.get('LLM_PROVIDER', 'openrouter')
 MODELO_GEMINI = os.environ.get('GEMINI_MODEL', 'gemini-3.8-flash')
 MODELO_CEREBRAS = os.environ.get('CEREBRAS_MODEL', 'qwen-3-235b-a22b-instruct-2507')
 MODELOS_OPENROUTER = [
@@ -50,6 +55,26 @@ def limpar(texto):
     if not texto:
         raise RuntimeError('resposta vazia da IA')
     return texto
+
+
+def data_brasilia():
+    """Data e hora atuais em Brasília (UTC-3), para datePublished do artigo."""
+    return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3))).isoformat(timespec='seconds')
+
+
+def separar_html(texto):
+    """Separa o artigo (do <!DOCTYPE até </html>) do que a IA escreveu depois.
+
+    Sem </html>, a resposta está cortada: vira falha, para não publicar HTML incompleto.
+    """
+    inicio = texto.lower().find('<!doctype')
+    if inicio > 0:
+        texto = texto[inicio:]
+    fim = texto.lower().find('</html>')
+    if fim == -1:
+        raise RuntimeError('resposta sem </html> (cortada ou fora do formato)')
+    fim += len('</html>')
+    return texto[:fim] + '\n', texto[fim:].strip()
 
 
 def modelo_disponivel(chave):
@@ -190,7 +215,7 @@ def main():
         print(f'🤖 Gerando {nome_html} ({PROVEDOR}: {quem})...')
         try:
             with open(prompt_path, encoding='utf-8') as f:
-                prompt = f.read()
+                prompt = f.read().replace('{{DATA_HOJE}}', data_brasilia())
             if PROVEDOR == 'openrouter':
                 # Lista de modelos gratuitos: tenta um por vez
                 html = gerar_com_lista(prompt, chave, MODELOS_OPENROUTER)
@@ -210,6 +235,7 @@ def main():
                     print(f'↪️ {modelo} indisponível agora; tentando {novo}')
                     modelo = novo
                     html = com_tentativas(prompt, chave, modelo)
+            html, analise = separar_html(html)
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1
@@ -218,6 +244,11 @@ def main():
         os.makedirs(HTML_DIR, exist_ok=True)
         with open(os.path.join(HTML_DIR, nome_html), 'w', encoding='utf-8') as f:
             f.write(html)
+        if analise:
+            # Trabalho de bastidores: guardado para consulta, nunca publicado
+            os.makedirs(ANALISE_DIR, exist_ok=True)
+            with open(os.path.join(ANALISE_DIR, f'{base}.analise.md'), 'w', encoding='utf-8') as f:
+                f.write(analise + '\n')
         linha['Artigo_Arquivo_HTML'] = nome_html
         linha['Status'] = 'GERADO'
         geradas += 1
