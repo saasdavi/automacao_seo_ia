@@ -1,50 +1,45 @@
 # Briefing SERP — memória
 
-**Consulta:** 2026-10-08 | Google Brasil (gl=br, hl=pt) | via SerpAPI
-**Palavra-chave:** memória | **Tema:** Memória | **Volume (planilha):** 50.0 | **Concorrência Ads (planilha):** Baixo
-**Variações:** memória
+**Data da consulta:** 2026-10-08 | Google Brasil (gl=br, hl=pt) | SerpAPI + leitura das páginas
+**Dados da planilha (Keyword Planner):** palavra-chave: memória | tema: Memória | volume: 50.0 | concorrência Ads: Baixo
+**Variações da planilha:** memória
 
-## CONCORRENTES (Top 5 orgânico)
+## CONCORRENTES (até 5 resultados orgânicos; sem vídeo, rede social ou loja)
 posição | título | URL direta | tipo | palavras aproximadas | H2 principais | lida de verdade?
 ---|---|---|---|---|---|---
-1 | - YouTube | https://www.youtube.com/watch?v=p_MI7p5VuXY | blog | ~14 |  | sim
-2 | Importância da memória e como estimulá-la | https://www.climedmg.com.br/post/import%C3%A2ncia-da-mem%C3%B3ria-e-como-estimul%C3%A1-la | blog | ~513 | Posts recentes | sim
-3 | Sem título | https://www.inf.ufrgs.br/~cabral/INF141.Cap.03A.html | blog | ~3107 | b) Memória do Ser Humano | sim
-4 | Memórias – Wikipédia, a enciclopédia livre | https://pt.wikipedia.org/wiki/Mem%C3%B3rias | enciclopédia | ~875 | Conteúdos; Brasil; Portugal; Referências | sim
-5 | Suas memórias são muito vívidas? Elas podem não ser reais - TN | https://tnpetroleo.com.br/academy/suas-memorias-sao-muito-vividas-elas-podem-nao-ser-reais/ | blog | ~917 |  | sim
+1 | (sem título) | https://publicacoesacademicas.uniceub.br/cienciasaude/article/view/531/352 | blog | ~25749 | (nenhum H2 útil) | sim
+2 | Dicionário de Poética e Pensamento | http://www.dicpoetica.letras.ufrj.br/index.php/Mem%C3%B3ria | blog | ~6192 | (nenhum H2 útil) | sim
+3 | Uma informação para não esquecer: entenda como funciona a sua memória | Hospital Moinhos de Vento | https://www.hospitalmoinhos.org.br/saude-e-voce/uma-informacao-para-nao-esquecer-entenda-como-funciona-sua-memoria/ | hospital | ~775 | (nenhum H2 útil) | sim
+4 | Tipos de memória: implícita, semântica e episódica | https://neuronup.com/br/neurociencia/neuropsicologia/memoria/tudo-sobre-a-memoria/ | blog | ~1309 | Memória de longo prazo; Processo multisistêmico; Um pouco de esquecimento; Perguntas frequentes sobre a memória | sim
+5 | Memória: como funciona, tipos e por que esquecemos | https://ramosdaciencia.com.br/memoria/ | blog | ~1091 | O que é memória?; O que o caso H.M. ensinou sobre a memória; Como uma memória é formada?; Quais são os principais tipos de memória?; Por que esquecemos?; Nossas lembranças são cópias fiéis do passado?; O que tudo isso tem a ver com aprender?; A memória não é um arquivo | sim
 
-## PERGUNTAS DO GOOGLE (PAA)
-- O que é memória?
-- Qual vitamina é boa para memória?
-- O que é o gênero memória literária?
-- O que é lembrança e memória?
+## PERGUNTAS DO GOOGLE (As pessoas também perguntam)
+- Onde fica a memória?
+- O que significa o termo memória?
+- O que fazer para melhorar a memória?
+- Quando o esquecimento é preocupante?
 
 ## PESQUISAS RELACIONADAS
 - 
-- Memórias frases
-- Memórias significado
-- Memórias ou memorias
-- Memórias filme
-- Memórias música
-- Relatos de memória exemplos
-- A importância da memória para a história
-- Narrativa de memória
 
-## LONG TAILS VISTAS (termo | fonte | na planilha? volume desconhecido)
+## LONG TAILS VISTAS NAS PÁGINAS LIDAS (termo | em quantas páginas aparece | na planilha?)
+- diferentes sistemas de memória | 2 de 5 | volume desconhecido
+- chamamos de memória | 2 de 5 | volume desconhecido
+- falar da memória | 2 de 5 | volume desconhecido
+- memória de trabalho | 2 de 5 | volume desconhecido
+- sistemas de memória | 2 de 5 | volume desconhecido
+- tipos de memória | 2 de 5 | volume desconhecido
 
-## LACUNAS (o que o topo não respondeu bem)
-- O que é memória?
-- Qual vitamina é boa para memória?
-- O que é o gênero memória literária?
-- O que é lembrança e memória?
+## LACUNAS (perguntas do Google que nenhum concorrente lido responde)
+- Onde fica a memória?
+- O que significa o termo memória?
+- O que fazer para melhorar a memória?
+- Quando o esquecimento é preocupante?
 
-## DIFICULDADE REAL: Média (autoridades no top 5: 1)
-
-## FONTES OFICIAIS CANDIDATAS (até 5)
-- https://pt.wikipedia.org/wiki/Mem%C3%B3rias | aberta de verdade? sim
-
-## AUTORIDADES NO TOP 5
-- pt.wikipedia.org
+## DIFICULDADE: média (autoridades no top 5: 1)
 
 ## DIVERGÊNCIAS COM A PLANILHA
-A planilha diz concorrência Ads 'Baixo' mas a SERP real indica 'Média'. 
+- Planilha diz concorrência Ads 'Baixo' mas o top 5 indica dificuldade 'média'.
+
+## FONTES OFICIAIS CANDIDATAS (abertas nesta consulta)
+- https://www.hospitalmoinhos.org.br/saude-e-voce/uma-informacao-para-nao-esquecer-entenda-como-funciona-sua-memoria/ | aberta de verdade? sim | A memória normalmente sofre eventuais falhas, mas quando esse esquecimento é recorrente, logo nos questionamos se existe alguma forma de melhorar este sistema.
