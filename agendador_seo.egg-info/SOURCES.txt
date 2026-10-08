@@ -1,0 +1,7 @@
+README.md
+pyproject.toml
+agendador_seo.egg-info/PKG-INFO
+agendador_seo.egg-info/SOURCES.txt
+agendador_seo.egg-info/dependency_links.txt
+agendador_seo.egg-info/requires.txt
+agendador_seo.egg-info/top_level.txt

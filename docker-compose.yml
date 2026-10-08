@@ -1,0 +1,13 @@
+# Orquestração do serviço de API do Agendador SEO
+services:
+  api:
+    build: .
+    container_name: agendador-seo-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persiste os arquivos gerados pelo pipeline no host
+      - ./data/processed:/app/data/processed
+    command: ["python", "-m", "src.cli", "serve", "--port", "8000"]
+    environment:
+      - PYTHONUNBUFFERED=1
