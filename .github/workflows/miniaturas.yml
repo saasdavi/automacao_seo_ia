@@ -1,0 +1,36 @@
+name: Baixar miniaturas (Pexels)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/vigilant-fermat-j3njnd]
+
+jobs:
+  miniaturas:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install requests
+
+    - name: Baixar fotos da Pexels por tema
+      env:
+        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      run: python scripts/baixar_miniaturas.py
+
+    - name: Commit das miniaturas
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action Miniaturas"
+        git add public/miniaturas dados/miniaturas.json
+        git diff --staged --quiet || git commit -m "🖼️ Miniaturas: fotos da Pexels por tema"
+        git push

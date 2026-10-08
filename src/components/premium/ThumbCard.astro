@@ -15,7 +15,13 @@ const Tag = upcoming ? 'article' : 'a';
   ]}
 >
   <div class="thumb-zoom relative aspect-[16/10] overflow-hidden bg-brand-100">
-    <img src={article.imagem} alt={article.titulo} loading="lazy" class="size-full object-cover" />
+    {article.imagem ? (
+      <img src={article.imagem} alt={article.titulo} loading="lazy" class="size-full object-cover" />
+    ) : (
+      <div class="grid size-full place-items-center bg-gradient-to-br from-brand-600 to-brand-900 p-6 text-center font-display text-2xl text-white/90">
+        {article.tema}
+      </div>
+    )}
     {upcoming && (
       <span class="absolute inset-0 grid place-items-center bg-ink-900/35 text-xs font-bold uppercase tracking-widest text-white">
         Em breve

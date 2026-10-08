@@ -4,74 +4,28 @@ import path from 'node:path';
 const CSV_PATH = path.join(process.cwd(), 'dados', 'calendario_blog_1_ano.csv');
 const ARTICLES_DIR = path.join(process.cwd(), 'dados', 'saida', 'html');
 
-// Thumbnails de reserva (usadas só se a Pexels não responder ou não houver chave)
-const THUMBS = {
-  Estresse: 'photo-1599643478518-a784e5dc4c8f',
-  Sono: 'photo-1541123603104-852fc75f7404',
-  'Insônia / Sono': 'photo-1531407979302-6e57a23a7c4d',
-  Ansiedade: 'photo-1506794778202-cad84cf45f1d',
-  Meditação: 'photo-1528148343865-f218b37f5a5c',
-  Memória: 'photo-1516534775068-bb57c960e9c8',
-  'Bem-estar': 'photo-1506926613408-eca07ce68773',
-};
-const FALLBACK = 'photo-1497206365907-3ff1691d8134';
+// Pool de fotos por tema, gerado por scripts/baixar_miniaturas.py (Pexels, salvo no repo)
+const MANIFESTO_PATH = path.join(process.cwd(), 'dados', 'miniaturas.json');
+const pool = fs.existsSync(MANIFESTO_PATH)
+  ? JSON.parse(fs.readFileSync(MANIFESTO_PATH, 'utf-8'))
+  : {};
 
-export function thumbFor(tema, width = 800, height = 520) {
-  const id = THUMBS[tema] ?? FALLBACK;
-  return `https://images.unsplash.com/${id}?w=${width}&h=${height}&fit=crop&q=80`;
-}
-
-// Consulta em inglês por tema (a Pexels responde melhor em inglês)
-const CONSULTAS_PEXELS = {
-  Estresse: 'stressed person',
-  Sono: 'sleeping peacefully bedroom',
-  'Insônia / Sono': 'sleeping peacefully bedroom',
-  Ansiedade: 'anxious person thinking',
-  Meditação: 'meditation calm',
-  Memória: 'thinking brain memory',
-  'Bem-estar': 'wellbeing relaxation nature',
-};
-const CONSULTA_PADRAO = 'calm mental health';
-
-// Busca fotos na Pexels no momento do build. Sem chave ou em caso de erro, devolve lista vazia.
-const PEXELS_KEY = process.env.PEXELS_API_KEY;
-const cacheConsultas = new Map();
-
-async function fotosPexels(consulta) {
-  if (!PEXELS_KEY) return [];
-  if (cacheConsultas.has(consulta)) return cacheConsultas.get(consulta);
-  let fotos = [];
-  try {
-    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(consulta)}&per_page=15&orientation=landscape`;
-    const r = await fetch(url, { headers: { Authorization: PEXELS_KEY } });
-    if (r.ok) {
-      const data = await r.json();
-      fotos = (data.photos ?? []).map(p => ({ id: p.id, url: p.src.large }));
-    } else {
-      console.warn(`Pexels respondeu ${r.status} para "${consulta}"`);
-    }
-  } catch (err) {
-    console.warn(`Falha na Pexels para "${consulta}": ${err.message}`);
-  }
-  cacheConsultas.set(consulta, fotos);
-  return fotos;
-}
-
-// Escolhe uma foto para cada card sem repetir dentro da página
-async function atribuirMiniaturas(cards) {
+// Escolhe uma foto do tema para cada card, sem repetir dentro da página.
+// Sem foto disponível para o tema, o card mostra um bloco da marca.
+function atribuirMiniaturas(cards) {
   const usadas = new Set();
   for (const card of cards) {
     if (card.imagemPropria) {
       card.imagem = card.imagemPropria;
       continue;
     }
-    const fotos = await fotosPexels(CONSULTAS_PEXELS[card.tema] ?? CONSULTA_PADRAO);
-    const livre = fotos.find(f => !usadas.has(f.id));
+    const fotos = pool[card.tema] ?? [];
+    const livre = fotos.find(f => !usadas.has(f));
     if (livre) {
-      usadas.add(livre.id);
-      card.imagem = livre.url;
+      usadas.add(livre);
+      card.imagem = livre;
     } else {
-      card.imagem = thumbFor(card.tema);
+      card.imagem = null;
     }
   }
 }
@@ -152,7 +106,7 @@ export async function loadArticles() {
   const upcoming = rows.filter(r => !r.slug).sort((a, b) => a.time - b.time).slice(0, 9);
   const temas = [...new Set(rows.map(r => r.tema).filter(Boolean))].sort();
 
-  await atribuirMiniaturas([...published, ...upcoming]);
+  atribuirMiniaturas([...published, ...upcoming]);
 
   return { published, upcoming, temas };
 }
