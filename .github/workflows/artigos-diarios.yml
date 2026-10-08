@@ -7,6 +7,15 @@ on:
     - cron: '0 15 * * *'   # 12h
     - cron: '0 23 * * *'   # 20h
   workflow_dispatch:
+    inputs:
+      provedor:
+        description: 'Provedor de IA para esta execução (teste do OpenRouter: escolha openrouter)'
+        required: false
+        default: gemini
+        type: choice
+        options:
+          - gemini
+          - openrouter
 
 # Uma execução por vez, para não gravar o CSV em paralelo
 concurrency:
@@ -38,8 +47,8 @@ jobs:
 
     - name: Gerar artigo com IA
       env:
-        # 'openrouter' usa modelos gratuitos (lista em OPENROUTER_MODELS no script)
-        LLM_PROVIDER: gemini
+        # Agendado: sempre gemini. Manual: escolha em "Run workflow" (gemini ou openrouter)
+        LLM_PROVIDER: ${{ github.event.inputs.provedor || 'gemini' }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         MAX_ARTIGOS: '1'
