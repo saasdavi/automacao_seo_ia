@@ -23,12 +23,25 @@ CSV_PATH = os.path.join('dados', 'calendario_blog_1_ano.csv')
 HTML_DIR = os.path.join('dados', 'saida', 'html')
 MODELO = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
 MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
-URL = f'https://generativelanguage.googleapis.com/v1beta/models/{MODELO}:generateContent'
+API = 'https://generativelanguage.googleapis.com/v1beta'
 
 
-def gerar(prompt, chave):
+def modelo_disponivel(chave):
+    """Escolhe um modelo flash disponível para a chave (o Google aposenta modelos com o tempo)."""
+    r = requests.get(f'{API}/models', headers={'x-goog-api-key': chave}, params={'pageSize': 100}, timeout=60)
+    r.raise_for_status()
+    candidatos = [
+        m['name'].split('/')[-1] for m in r.json().get('models', [])
+        if 'generateContent' in m.get('supportedGenerationMethods', [])
+        and 'flash' in m['name'] and 'lite' not in m['name']
+    ]
+    # Nomes mais altos (versão mais nova) primeiro
+    return sorted(candidatos, reverse=True)[0] if candidatos else None
+
+
+def gerar(prompt, chave, modelo):
     r = requests.post(
-        URL,
+        f'{API}/models/{modelo}:generateContent',
         headers={'x-goog-api-key': chave, 'Content-Type': 'application/json'},
         json={'contents': [{'parts': [{'text': prompt}]}]},
         timeout=180,
@@ -68,14 +81,27 @@ def main():
         return 0
 
     geradas, falhas = 0, 0
+    modelo = MODELO
     for linha in candidatas:
         prompt_path = linha['GEMINI_Prompt_Arquivo'].strip()
         base = os.path.basename(prompt_path).replace('.prompt.md', '')
         nome_html = f'{base}.html'
-        print(f'🤖 Gerando {nome_html} ({MODELO})...')
+        print(f'🤖 Gerando {nome_html} ({modelo})...')
         try:
             with open(prompt_path, encoding='utf-8') as f:
-                html = gerar(f.read(), chave)
+                prompt = f.read()
+            try:
+                html = gerar(prompt, chave, modelo)
+            except RuntimeError as e:
+                # 404 = modelo aposentado: troca pelo flash mais novo disponível e tenta de novo
+                if 'HTTP 404' not in str(e):
+                    raise
+                novo = modelo_disponivel(chave)
+                if not novo or novo == modelo:
+                    raise
+                print(f'↪️ {modelo} indisponível; usando {novo}')
+                modelo = novo
+                html = gerar(prompt, chave, modelo)
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1
