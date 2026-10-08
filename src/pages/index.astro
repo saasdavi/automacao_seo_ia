@@ -64,9 +64,10 @@ const upcomingArticles = allRows
     return !fs.existsSync(filePath);
   })
   .sort((a, b) => parseDate(a['Data']).getTime() - parseDate(b['Data']).getTime())
-  .slice(0, 9);
+  .slice(0, 6);
 
 const hero = articles[0];
+const otherArticles = articles.slice(1, 7);
 ---
 
 <Layout title="Início" description="Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental.">
@@ -78,13 +79,12 @@ const hero = articles[0];
       background: linear-gradient(135deg, #006400, #0a7d0a);
       border-radius: 0;
       overflow: hidden;
-      margin: 0;
+      margin: 0 0 50px 0;
       box-shadow: 0 8px 24px rgba(0, 100, 0, 0.2);
     }
 
     .hero-body {
       padding: 60px 40px;
-      max-width: 100%;
     }
 
     .hero .badge {
@@ -120,26 +120,25 @@ const hero = articles[0];
     }
 
     .wrap {
-      max-width: 100%;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 0;
+      padding: 0 40px;
     }
 
     .section-title {
       color: #006400;
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: bold;
-      padding: 40px 40px 30px;
-      margin: 0;
-      background: #fff;
+      margin: 50px 0 30px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e0e8e0;
     }
 
     .articles-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 24px;
-      padding: 0 40px 40px;
-      background: #fff;
+      margin-bottom: 50px;
     }
 
     .article-card {
@@ -152,6 +151,7 @@ const hero = articles[0];
       transition: transform 0.2s, box-shadow 0.2s;
       display: flex;
       flex-direction: column;
+      height: 100%;
     }
 
     .article-card:hover {
@@ -161,7 +161,7 @@ const hero = articles[0];
 
     .article-image {
       width: 100%;
-      height: 200px;
+      height: 180px;
       object-fit: cover;
       background: #f0f0f0;
     }
@@ -200,7 +200,7 @@ const hero = articles[0];
 
     .article-title {
       color: #006400;
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: bold;
       margin: 0 0 10px;
       line-height: 1.3;
@@ -215,13 +215,23 @@ const hero = articles[0];
     }
 
     .article-card.coming-soon {
-      opacity: 0.75;
-      border-style: dashed;
+      opacity: 0.7;
+    }
+
+    .article-card.coming-soon .article-image {
+      opacity: 0.6;
     }
 
     .article-card.coming-soon .article-desc {
       font-style: italic;
-      color: #777;
+      color: #999;
+    }
+
+    .footer-text {
+      color: #555;
+      font-size: 0.95rem;
+      margin: 30px 0;
+      text-align: center;
     }
 
     @media (max-width: 768px) {
@@ -237,69 +247,84 @@ const hero = articles[0];
         font-size: 1rem;
       }
 
+      .hero {
+        margin: 0 0 30px 0;
+      }
+
+      .wrap {
+        padding: 0 20px;
+      }
+
       .section-title {
-        padding: 30px 20px 20px;
+        font-size: 1.4rem;
+        margin: 30px 0 20px 0;
       }
 
       .articles-grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 16px;
-        padding: 0 20px 20px;
+        margin-bottom: 30px;
       }
     }
   </style>
 
+  <!-- BANNER HERO -->
+  {hero && (
+    <a class="hero" href={`/${path.basename(hero['Artigo_Arquivo_HTML'])}`}>
+      <div class="hero-body">
+        <span class="badge">★ Em destaque · {hero['Tema']}</span>
+        <h1 class="hero-title">{hero['Palavra-chave principal']}</h1>
+        <p class="hero-desc">Artigo informativo sobre {hero['Palavra-chave principal'].toLowerCase()}. Tema: {hero['Tema']}.</p>
+        <span class="hero-meta">📅 Publicado em {hero['Data']} às {hero['Horário']}</span>
+      </div>
+    </a>
+  )}
+
   <div class="wrap">
-    {hero && (
-      <a class="hero" href={`/${path.basename(hero['Artigo_Arquivo_HTML'])}`}>
-        <div class="hero-body">
-          <span class="badge">★ Em destaque · {hero['Tema']}</span>
-          <h1 class="hero-title">{hero['Palavra-chave principal']}</h1>
-          <p class="hero-desc">Artigo informativo sobre {hero['Palavra-chave principal'].toLowerCase()}. Tema: {hero['Tema']}.</p>
-          <span class="hero-meta">📅 Publicado em {hero['Data']} às {hero['Horário']}</span>
-        </div>
-      </a>
-    )}
-  </div>
+    <!-- PRÓXIMAS PUBLICAÇÕES -->
+    <h2 class="section-title">Próximas publicações</h2>
 
-  <h2 class="section-title">Próximas publicações</h2>
+    <div class="articles-grid">
+      {upcomingArticles.map(article => {
+        const htmlFile = article['Artigo_Arquivo_HTML'];
+        const filePath = htmlFile ? path.join(articlesDir, path.basename(htmlFile)) : '';
+        const exists = htmlFile && htmlFile.toLowerCase() !== 'nan' && fs.existsSync(filePath);
+        const imageUrl = article['Imagem_Miniatura'] || getDefaultImage(article['Tema']);
 
-  <div class="articles-grid">
-    {upcomingArticles.map(article => {
-      const htmlFile = article['Artigo_Arquivo_HTML'];
-      const filePath = path.join(articlesDir, path.basename(htmlFile));
-      const exists = htmlFile && htmlFile.toLowerCase() !== 'nan' && fs.existsSync(filePath);
-      const imageUrl = article['Imagem_Miniatura'] || getDefaultImage(article['Tema']);
-
-      if (exists) {
-        return (
-          <a class="article-card" href={`/${path.basename(htmlFile)}`}>
-            <img src={imageUrl} alt={article['Palavra-chave principal']} class="article-image" />
-            <div class="article-content">
-              <div class="article-meta">
-                <span class="article-tag">{article['Tema']}</span>
-                <span class="article-date">{article['Data']} · {article['Horário']}</span>
+        if (exists) {
+          return (
+            <a class="article-card" href={`/${path.basename(htmlFile)}`}>
+              <img src={imageUrl} alt={article['Palavra-chave principal']} class="article-image" />
+              <div class="article-content">
+                <div class="article-meta">
+                  <span class="article-tag">{article['Tema']}</span>
+                  <span class="article-date">{article['Data']}</span>
+                </div>
+                <h3 class="article-title">{article['Palavra-chave principal']}</h3>
+                <p class="article-desc">Artigo sobre {article['Palavra-chave principal'].toLowerCase()}.</p>
               </div>
-              <h3 class="article-title">{article['Palavra-chave principal']}</h3>
-              <p class="article-desc">Artigo sobre {article['Palavra-chave principal'].toLowerCase()}.</p>
-            </div>
-          </a>
-        );
-      } else {
-        return (
-          <div class="article-card coming-soon">
-            <img src={imageUrl} alt={article['Palavra-chave principal']} class="article-image" style="opacity: 0.6;" />
-            <div class="article-content">
-              <div class="article-meta">
-                <span class="article-tag">{article['Tema']}</span>
-                <span class="article-date">{article['Data']} · {article['Horário']}</span>
+            </a>
+          );
+        } else {
+          return (
+            <div class="article-card coming-soon">
+              <img src={imageUrl} alt={article['Palavra-chave principal']} class="article-image" />
+              <div class="article-content">
+                <div class="article-meta">
+                  <span class="article-tag">{article['Tema']}</span>
+                  <span class="article-date">{article['Data']}</span>
+                </div>
+                <h3 class="article-title">{article['Palavra-chave principal']}</h3>
+                <p class="article-desc">Em breve — {article['Horário']}</p>
               </div>
-              <h3 class="article-title">{article['Palavra-chave principal']}</h3>
-              <p class="article-desc">Em produção — entra no ar automaticamente nesta data.</p>
             </div>
-          </div>
-        );
-      }
-    })}
+          );
+        }
+      })}
+    </div>
+
+    <p class="footer-text">
+      📊 {articles.length} artigo(s) publicado(s) · Este conteúdo é informativo e não substitui a orientação de um profissional.
+    </p>
   </div>
 </Layout>
