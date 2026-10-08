@@ -41,15 +41,31 @@ def modelo_disponivel(chave):
     return sorted(candidatos, reverse=True)[0] if candidatos else None
 
 
+def modelo_alternativo(chave, atual):
+    """Outro modelo flash (inclusive 'lite', que costuma ter menos demanda) para quando o principal está ocupado."""
+    r = requests.get(f'{API}/models', headers={'x-goog-api-key': chave}, params={'pageSize': 100}, timeout=60)
+    r.raise_for_status()
+    candidatos = [
+        m['name'].split('/')[-1] for m in r.json().get('models', [])
+        if 'generateContent' in m.get('supportedGenerationMethods', [])
+        and 'flash' in m['name'] and m['name'].split('/')[-1] != atual
+    ]
+    return sorted(candidatos, reverse=True)[0] if candidatos else None
+
+
+def eh_temporario(e):
+    """Erros que passam sozinhos: sobrecarga (503), limite de uso (429) e conexão/tempo esgotado."""
+    return isinstance(e, requests.RequestException) or 'HTTP 503' in str(e) or 'HTTP 429' in str(e)
+
+
 def com_tentativas(prompt, chave, modelo, maximo=5):
-    """Repete quando o Gemini está sobrecarregado (503) ou com limite de uso (429).
-    Espera cada vez mais (2, 4, 8, 16... segundos) com uma pausa aleatória, para não insistir no mesmo instante."""
+    """Repete quando o Gemini está ocupado, esperando cada vez mais (2, 4, 8, 16... segundos)
+    com uma pausa aleatória, para não insistir no mesmo instante."""
     for tentativa in range(1, maximo + 1):
         try:
             return gerar(prompt, chave, modelo)
-        except RuntimeError as e:
-            temporario = 'HTTP 503' in str(e) or 'HTTP 429' in str(e)
-            if not temporario or tentativa == maximo:
+        except (RuntimeError, requests.RequestException) as e:
+            if not eh_temporario(e) or tentativa == maximo:
                 raise
             espera = min(2 ** tentativa, 64) + random.uniform(0, 2)
             print(f'⏳ Modelo ocupado (tentativa {tentativa}/{maximo}). Nova tentativa em {espera:.0f}s...')
@@ -61,7 +77,7 @@ def gerar(prompt, chave, modelo):
         f'{API}/models/{modelo}:generateContent',
         headers={'x-goog-api-key': chave, 'Content-Type': 'application/json'},
         json={'contents': [{'parts': [{'text': prompt}]}]},
-        timeout=180,
+        timeout=120,
     )
     if r.status_code != 200:
         raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
@@ -109,14 +125,18 @@ def main():
                 prompt = f.read()
             try:
                 html = com_tentativas(prompt, chave, modelo)
-            except RuntimeError as e:
-                # 404 = modelo aposentado: troca pelo flash mais novo disponível e tenta de novo
-                if 'HTTP 404' not in str(e):
+            except (RuntimeError, requests.RequestException) as e:
+                if 'HTTP 404' in str(e):
+                    # Modelo aposentado: usa o flash mais novo disponível
+                    novo = modelo_disponivel(chave)
+                elif eh_temporario(e):
+                    # Modelo principal continua ocupado: tenta outro flash
+                    novo = modelo_alternativo(chave, modelo)
+                else:
                     raise
-                novo = modelo_disponivel(chave)
                 if not novo or novo == modelo:
                     raise
-                print(f'↪️ {modelo} indisponível; usando {novo}')
+                print(f'↪️ {modelo} indisponível agora; tentando {novo}')
                 modelo = novo
                 html = com_tentativas(prompt, chave, modelo)
         except (requests.RequestException, RuntimeError) as e:
