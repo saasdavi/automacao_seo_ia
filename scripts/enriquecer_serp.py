@@ -176,11 +176,15 @@ def main():
 
     # Garante a pasta de saída dos arquivos Markdown
     os.makedirs(SAIDA_MD_DIR, exist_ok=True)
-    
-    # Filtra apenas linhas na fila
+
+    # Normaliza Status em branco para 'Fila' (todas as 1.095 linhas elegíveis)
     if 'Status' not in df.columns:
         df['Status'] = 'Fila'
-    fila = df[df['Status'].isin(['Fila', 'fila', ''])].head(MAX_ROWS_PER_RUN)
+    df['Status'] = df['Status'].fillna('').astype(str).str.strip()
+    df.loc[df['Status'] == '', 'Status'] = 'Fila'
+
+    # Filtra apenas linhas na fila
+    fila = df[df['Status'].isin(['Fila', 'fila'])].head(MAX_ROWS_PER_RUN)
     
     if fila.empty:
         print("✅ Nenhuma linha na fila. Processo concluído.")
