@@ -1,7 +1,6 @@
 {
-  "buildCommand": "bash build.sh",
+  "buildCommand": "python scripts/gerar_home.py",
   "outputDirectory": "dados/saida/html",
-  "installCommand": "pip install -q pandas requests beautifulsoup4",
   "env": {
     "PYTHON_VERSION": "3.11"
   }
