@@ -28,63 +28,6 @@ const { title, description } = Astro.props;
         color: #222;
         background: #fafafa;
         line-height: 1.7;
-        padding-top: 50px;
-      }
-
-      .site-header-nav {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: rgba(0, 100, 0, 0.95);
-        backdrop-filter: blur(10px);
-        color: #fff;
-        z-index: 1000;
-        padding: 0;
-      }
-
-      .nav-wrapper {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 12px 40px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .logo {
-        font-size: 1.3rem;
-        font-weight: bold;
-        letter-spacing: 0.5px;
-      }
-
-      .nav-menu {
-        display: flex;
-        gap: 30px;
-      }
-
-      .nav-menu a {
-        color: #fff;
-        text-decoration: none;
-        font-size: 0.95rem;
-        transition: opacity 0.2s;
-      }
-
-      .nav-menu a:hover {
-        opacity: 0.8;
-      }
-
-      .search-btn {
-        background: none;
-        border: none;
-        color: #fff;
-        font-size: 1.2rem;
-        cursor: pointer;
-        transition: transform 0.2s;
-      }
-
-      .search-btn:hover {
-        transform: scale(1.1);
       }
 
 
@@ -111,44 +54,14 @@ const { title, description } = Astro.props;
       }
 
       @media (max-width: 768px) {
-        .nav-wrapper {
-          padding: 10px 20px;
-        }
-
-        .logo {
-          font-size: 1.1rem;
-        }
-
-        .nav-menu {
-          gap: 15px;
-          font-size: 0.85rem;
-        }
-
-        .search-btn {
-          font-size: 1rem;
-        }
-
-        body {
-          padding-top: 45px;
+        .wrap {
+          padding: 16px 20px;
         }
       }
 
     </style>
   </head>
   <body>
-    <div class="site-header-nav">
-      <div class="nav-wrapper">
-        <div class="logo">🌿 Mente Leve</div>
-        <nav class="nav-menu">
-          <a href="/">Início</a>
-          <a href="/#categorias">Categorias</a>
-          <a href="/sobre">Sobre</a>
-          <a href="/contato">Contato</a>
-        </nav>
-        <button class="search-btn" title="Buscar">🔍</button>
-      </div>
-    </div>
-
     <slot />
 
     <footer class="site-footer">

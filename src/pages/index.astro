@@ -131,6 +131,70 @@ const filteredArticles = selectedCategory
 
 <Layout title="Início" description="Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental.">
   <style>
+    .hero-landing {
+      width: 100vw;
+      margin-left: calc(-50vw + 50%);
+      background: linear-gradient(135deg, #006400 0%, #0a7d0a 50%, #054305 100%);
+      padding: 120px 40px 80px;
+      text-align: center;
+      color: #fff;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 80px;
+    }
+
+    .hero-landing-logo {
+      font-size: 5rem;
+      margin-bottom: 20px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+    }
+
+    .hero-landing-title {
+      font-size: 4rem;
+      font-weight: bold;
+      margin: 20px 0 16px;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      max-width: 900px;
+    }
+
+    .hero-landing-subtitle {
+      font-size: 1.5rem;
+      margin-bottom: 50px;
+      color: #e8f3e8;
+      max-width: 700px;
+      line-height: 1.6;
+    }
+
+    .hero-landing-cta {
+      display: inline-block;
+      background: #ffd54d;
+      color: #006400;
+      padding: 18px 56px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-size: 1.3rem;
+      font-weight: bold;
+      transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-landing-cta:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+      background: #ffe680;
+    }
+
     .hero-section {
       width: 100vw;
       margin-left: calc(-50vw + 50%);
@@ -376,6 +440,29 @@ const filteredArticles = selectedCategory
     }
 
     @media (max-width: 768px) {
+      .hero-landing {
+        padding: 80px 20px 60px;
+        min-height: auto;
+      }
+
+      .hero-landing-logo {
+        font-size: 3.5rem;
+      }
+
+      .hero-landing-title {
+        font-size: 2.5rem;
+      }
+
+      .hero-landing-subtitle {
+        font-size: 1.1rem;
+        margin-bottom: 40px;
+      }
+
+      .hero-landing-cta {
+        padding: 14px 40px;
+        font-size: 1.1rem;
+      }
+
       .hero-body {
         padding: 50px 20px;
       }
@@ -423,6 +510,16 @@ const filteredArticles = selectedCategory
     }
   </style>
 
+  <!-- HERO LANDING - IDENTIDADE DO BLOG -->
+  <div class="hero-landing">
+    <div class="hero-landing-logo">🌿</div>
+    <h1 class="hero-landing-title">Mente Leve</h1>
+    <p class="hero-landing-subtitle">
+      Conteúdo informativo sobre saúde mental, bem-estar e qualidade de vida
+    </p>
+    <a href="#articles" class="hero-landing-cta">↓ Iniciar</a>
+  </div>
+
   <!-- HERO FULL WIDTH -->
   <div class="hero-section">
     {hero && (
@@ -437,7 +534,7 @@ const filteredArticles = selectedCategory
     )}
   </div>
 
-  <div class="wrap">
+  <div class="wrap" id="articles">
     <!-- MENU DE CATEGORIAS -->
     <div class="categories-menu">
       <div class="categories-title">📂 Filtrar por categoria</div>
