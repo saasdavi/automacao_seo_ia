@@ -30,6 +30,8 @@ def buscar_serper(keyword, num=5):
         response = requests.post(url, json=payload, headers=headers, timeout=10)
         if response.status_code == 200:
             return response.json()
+        # Diagnóstico: mostra o motivo real da falha (ex.: 403 = chave inválida)
+        print(f"⚠️ HTTP {response.status_code} na Serper para '{keyword}': {response.text[:200]}")
     except Exception as e:
         print(f"Erro na API para {keyword}: {e}")
     return None
