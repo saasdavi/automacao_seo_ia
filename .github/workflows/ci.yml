@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Instalar dependências
-        run: pip install -r requirements.txt pyyaml
+        run: pip install -r requirements.txt pyyaml pandas
       - name: Validar sintaxe dos scripts Python
         run: python -m compileall -q scripts/ && [ ! -d src ] || python -m compileall -q src/
       - name: Validar YAML dos workflows

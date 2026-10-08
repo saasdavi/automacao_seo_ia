@@ -1,636 +1,89 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import fs from 'fs';
-import path from 'path';
+import PremiumLayout from '../layouts/PremiumLayout.astro';
+import FeaturedHero from '../components/premium/FeaturedHero.astro';
+import ThumbCard from '../components/premium/ThumbCard.astro';
+import PromoBanner from '../components/premium/PromoBanner.astro';
+import { loadArticles } from '../lib/articles.js';
 
-// Ler dados do CSV
-function readCSV(filePath) {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n');
-  const headers = lines[0].split(',').map(h => h.trim());
+const { published, upcoming, temas } = loadArticles();
 
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const values = lines[i].split(',').map(v => v.trim());
-    const row = {};
-    headers.forEach((h, idx) => {
-      row[h] = values[idx] || '';
-    });
-    rows.push(row);
-  }
-  return rows;
-}
-
-function parseDate(dateStr) {
-  const [day, month, year] = dateStr.split('/');
-  return new Date(year, month - 1, day);
-}
-
-// Pool de imagens variadas e coloridas por tema
-const themeImagePools = {
-  'Estresse': [
-    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1497206365907-3ff1691d8134?w=600&h=400&fit=crop&q=80',
-  ],
-  'Sono': [
-    'https://images.unsplash.com/photo-1541123603104-852fc75f7404?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1531407979302-6e57a23a7c4d?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1512941691920-25bda36ae95e?w=600&h=400&fit=crop&q=80',
-  ],
-  'Ansiedade': [
-    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1497206365907-3ff1691d8134?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
-  ],
-  'Meditação': [
-    'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop&q=80',
-  ],
-  'Memória': [
-    'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1507238691621-549b1be93ec1?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop&q=80',
-  ],
-  'Bem-estar': [
-    'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=600&h=400&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&h=400&fit=crop&q=80',
-  ],
-};
-
-// Pool padrão com muitas imagens coloridas
-const defaultPool = [
-  'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=600&h=400&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1541123603104-852fc75f7404?w=600&h=400&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=400&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1497206365907-3ff1691d8134?w=600&h=400&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&h=400&fit=crop&q=80',
-];
-
-// Imagem temática com rotação para não repetir
-function getThematicImage(tema, keyword, index = 0) {
-  const pool = themeImagePools[tema] || defaultPool;
-  return pool[index % pool.length];
-}
-
-// Carregar artigos
-const csvPath = path.join(process.cwd(), 'dados', 'calendario_blog_1_ano.csv');
-const allRows = readCSV(csvPath);
-const articlesDir = path.join(process.cwd(), 'dados', 'saida', 'html');
-
-// Filtrar artigos que existem
-const articles = allRows
-  .filter(row => {
-    const htmlFile = row['Artigo_Arquivo_HTML'];
-    if (!htmlFile || htmlFile.toLowerCase() === 'nan') return false;
-    const filePath = path.join(articlesDir, path.basename(htmlFile));
-    return fs.existsSync(filePath);
-  })
-  .sort((a, b) => parseDate(b['Data']).getTime() - parseDate(a['Data']).getTime());
-
-// Artigos que vão publicar
-const upcomingArticles = allRows
-  .filter(row => {
-    const htmlFile = row['Artigo_Arquivo_HTML'];
-    if (!htmlFile || htmlFile.toLowerCase() === 'nan') return true;
-    const filePath = path.join(articlesDir, path.basename(htmlFile));
-    return !fs.existsSync(filePath);
-  })
-  .sort((a, b) => parseDate(a['Data']).getTime() - parseDate(b['Data']).getTime())
-  .slice(0, 9);
-
-const hero = articles[0];
-
-// Extrair categorias únicas
-const allTemas = [...new Set(allRows.map(row => row['Tema']).filter(t => t))];
-const sortedTemas = allTemas.sort();
-
-// URL params
-const url = new URL(Astro.request.url);
-const selectedCategory = url.searchParams.get('categoria') || null;
-
-// Filtrar artigos por categoria se selecionada
-const filteredArticles = selectedCategory
-  ? upcomingArticles.filter(a => a['Tema'] === selectedCategory)
-  : upcomingArticles;
-
+// Destaque: artigo mais recente publicado; sem publicados, o próximo agendado
+const featured = published[0] ?? upcoming[0];
+const grid = [...published.slice(1), ...upcoming];
 ---
 
-<Layout title="Início" description="Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental.">
-  <style>
-    .hero-landing {
-      width: 100vw;
-      margin-left: calc(-50vw + 50%);
-      background-image: url('https://pixabay.com/get/g8b65d0a3e20ab11c1c35a72f1f9b94b8c1b16a60a3b9c2c6ec9c2c6ec9c2c6ec_640.jpg');
-      background-size: cover;
-      background-position: center;
-      background-attachment: fixed;
-      padding: 120px 40px 80px;
-      text-align: center;
-      color: #fff;
-      min-height: 600px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 80px;
-      position: relative;
-    }
+<PremiumLayout
+  title="Modelo Premium"
+  description="Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental."
+>
+  {featured && <FeaturedHero article={featured} />}
 
-    .hero-landing::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(0, 100, 0, 0.5) 0%, rgba(10, 125, 10, 0.5) 50%, rgba(5, 67, 5, 0.6) 100%);
-      z-index: 1;
-    }
-
-    .hero-landing-content {
-      position: relative;
-      z-index: 2;
-    }
-
-    .hero-landing-logo {
-      font-size: 5rem;
-      margin-bottom: 20px;
-      animation: float 3s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-15px); }
-    }
-
-    .hero-landing-title {
-      font-size: 4rem;
-      font-weight: bold;
-      margin: 20px 0 16px;
-      line-height: 1.1;
-      letter-spacing: -1px;
-      max-width: 900px;
-    }
-
-    .hero-landing-subtitle {
-      font-size: 1.5rem;
-      margin-bottom: 50px;
-      color: #e8f3e8;
-      max-width: 700px;
-      line-height: 1.6;
-    }
-
-    .hero-landing-cta {
-      display: inline-block;
-      background: #ffd54d;
-      color: #006400;
-      padding: 18px 56px;
-      border-radius: 50px;
-      text-decoration: none;
-      font-size: 1.3rem;
-      font-weight: bold;
-      transition: all 0.3s;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    }
-
-    .hero-landing-cta:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-      background: #ffe680;
-    }
-
-    .hero-section {
-      width: 100vw;
-      margin-left: calc(-50vw + 50%);
-      background: linear-gradient(135deg, #006400 0%, #0a7d0a 100%);
-      margin-bottom: 60px;
-    }
-
-    .hero {
-      display: block;
-      text-decoration: none;
-      color: inherit;
-      overflow: hidden;
-    }
-
-    .hero-body {
-      padding: 80px 40px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .hero .badge {
-      display: inline-block;
-      background: #ffd54d;
-      color: #333;
-      font-size: 0.9rem;
-      font-weight: bold;
-      padding: 8px 16px;
-      border-radius: 20px;
-      margin-bottom: 20px;
-    }
-
-    .hero-title {
-      color: #fff;
-      font-size: 3.2rem;
-      margin: 0 0 20px;
-      line-height: 1.1;
-      font-weight: bold;
-    }
-
-    .hero-desc {
-      color: #e8f3e8;
-      font-size: 1.3rem;
-      margin: 0 0 24px;
-      max-width: 750px;
-      line-height: 1.6;
-    }
-
-    .hero-meta {
-      color: #cfe6cf;
-      font-size: 1.05rem;
-    }
-
-    .wrap {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 40px;
-    }
-
-    .section-title {
-      color: #006400;
-      font-size: 2rem;
-      font-weight: bold;
-      margin: 60px 0 40px 0;
-      padding-bottom: 12px;
-      border-bottom: 3px solid #006400;
-    }
-
-    .articles-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 28px;
-      margin-bottom: 60px;
-    }
-
-    .article-card {
-      background: #fff;
-      border-radius: 14px;
-      overflow: hidden;
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.3s, box-shadow 0.3s;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      box-shadow: 0 4px 12px rgba(0, 100, 0, 0.1);
-    }
-
-    .article-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 16px 32px rgba(0, 100, 0, 0.2);
-    }
-
-    .article-image {
-      width: 100%;
-      height: 220px;
-      object-fit: cover;
-      background: linear-gradient(135deg, #e8f3e8 0%, #d0e0d0 100%);
-      display: block;
-    }
-
-    .article-image:not([src]),
-    .article-image[src=""] {
-      background: linear-gradient(135deg, #e8f3e8 0%, #d0e0d0 100%);
-    }
-
-    .article-content {
-      padding: 24px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .article-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-      font-size: 0.8rem;
-    }
-
-    .article-tag {
-      background: #e8f3e8;
-      color: #006400;
-      font-size: 0.8rem;
-      font-weight: bold;
-      padding: 4px 12px;
-      border-radius: 14px;
-      white-space: nowrap;
-    }
-
-    .article-date {
-      color: #999;
-      font-size: 0.8rem;
-      white-space: nowrap;
-    }
-
-    .article-title {
-      color: #006400;
-      font-size: 1.25rem;
-      font-weight: bold;
-      margin: 0 0 12px;
-      line-height: 1.3;
-    }
-
-    .article-desc {
-      color: #666;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      margin: 0;
-      flex: 1;
-    }
-
-    .article-card.coming-soon {
-      opacity: 0.75;
-    }
-
-    .article-card.coming-soon .article-image {
-      opacity: 0.5;
-    }
-
-    .article-card.coming-soon .article-desc {
-      font-style: italic;
-      color: #999;
-    }
-
-    .footer-text {
-      color: #777;
-      font-size: 0.95rem;
-      margin: 40px 0;
-      text-align: center;
-      padding: 20px 0;
-      border-top: 1px solid #e0e8e0;
-    }
-
-    .categories-menu {
-      background: #f8faf8;
-      padding: 30px 40px;
-      margin-bottom: 40px;
-      border-radius: 12px;
-      border: 1px solid #e0e8e0;
-    }
-
-    .categories-title {
-      color: #006400;
-      font-size: 1.1rem;
-      font-weight: bold;
-      margin: 0 0 16px 0;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-size: 0.9rem;
-    }
-
-    .categories-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .category-btn {
-      display: inline-block;
-      padding: 10px 18px;
-      background: #fff;
-      border: 2px solid #d0e0d0;
-      border-radius: 20px;
-      text-decoration: none;
-      color: #006400;
-      font-weight: 600;
-      font-size: 0.95rem;
-      transition: all 0.2s;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .category-btn:hover {
-      background: #e8f3e8;
-      border-color: #006400;
-      transform: translateY(-2px);
-    }
-
-    .category-btn.active {
-      background: #006400;
-      color: #fff;
-      border-color: #006400;
-    }
-
-    .clear-filter {
-      display: inline-block;
-      padding: 10px 18px;
-      background: #fff3cd;
-      border: 2px solid #ffc107;
-      border-radius: 20px;
-      text-decoration: none;
-      color: #664d03;
-      font-weight: 600;
-      font-size: 0.95rem;
-      transition: all 0.2s;
-      cursor: pointer;
-    }
-
-    .clear-filter:hover {
-      background: #ffe69c;
-    }
-
-    @media (max-width: 768px) {
-      .hero-landing {
-        padding: 80px 20px 60px;
-        min-height: auto;
-      }
-
-      .hero-landing-logo {
-        font-size: 3.5rem;
-      }
-
-      .hero-landing-title {
-        font-size: 2.5rem;
-      }
-
-      .hero-landing-subtitle {
-        font-size: 1.1rem;
-        margin-bottom: 40px;
-      }
-
-      .hero-landing-cta {
-        padding: 14px 40px;
-        font-size: 1.1rem;
-      }
-
-      .hero-body {
-        padding: 50px 20px;
-      }
-
-      .hero-title {
-        font-size: 2.2rem;
-      }
-
-      .hero-desc {
-        font-size: 1.1rem;
-      }
-
-      .wrap {
-        padding: 0 20px;
-      }
-
-      .categories-menu {
-        padding: 20px;
-        margin-bottom: 30px;
-      }
-
-      .section-title {
-        font-size: 1.6rem;
-        margin: 40px 0 24px 0;
-      }
-
-      .articles-grid {
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-        gap: 16px;
-        margin-bottom: 40px;
-      }
-
-      .article-content {
-        padding: 16px;
-      }
-
-      .article-title {
-        font-size: 1.1rem;
-      }
-
-      .category-btn {
-        font-size: 0.85rem;
-        padding: 8px 14px;
-      }
-    }
-  </style>
-
-  <!-- HERO LANDING - IDENTIDADE DO BLOG -->
-  <div class="hero-landing">
-    <div class="hero-landing-content">
-      <div class="hero-landing-logo">🌿</div>
-      <h1 class="hero-landing-title">Mente Leve</h1>
-      <p class="hero-landing-subtitle">
-        Conteúdo informativo sobre saúde mental, bem-estar e qualidade de vida
-      </p>
-      <a href="#articles" class="hero-landing-cta">↓ Iniciar</a>
-    </div>
-  </div>
-
-  <!-- HERO FULL WIDTH -->
-  <div class="hero-section">
-    {hero && (
-      <a class="hero" href={`/${path.basename(hero['Artigo_Arquivo_HTML'])}`}>
-        <div class="hero-body">
-          <span class="badge">★ Em destaque · {hero['Tema']}</span>
-          <h1 class="hero-title">{hero['Palavra-chave principal']}</h1>
-          <p class="hero-desc">Artigo informativo sobre {hero['Palavra-chave principal'].toLowerCase()}. Mergulhe neste conteúdo essencial sobre {hero['Tema'].toLowerCase()}.</p>
-          <span class="hero-meta">📅 {hero['Data']} às {hero['Horário']}</span>
-        </div>
-      </a>
-    )}
-  </div>
-
-  <div class="wrap" id="articles">
-    <!-- MENU DE CATEGORIAS -->
-    <div class="categories-menu">
-      <div class="categories-title">📂 Filtrar por categoria</div>
-      <div class="categories-list">
-        {selectedCategory && (
-          <a href="/" class="clear-filter">✕ Limpar filtro</a>
-        )}
-        {sortedTemas.map(tema => (
-          <a
-            href={`/?categoria=${encodeURIComponent(tema)}`}
-            class={`category-btn ${selectedCategory === tema ? 'active' : ''}`}
+  <section id="artigos" class="mx-auto max-w-7xl px-5 pt-20 lg:px-8">
+    <div class="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.2em] text-brand-500">Biblioteca</p>
+        <h2 class="mt-2 text-4xl font-semibold text-ink-900">Leituras para respirar melhor</h2>
+      </div>
+      <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar por tema" data-filter-group>
+        <button
+          type="button"
+          data-filter="all"
+          aria-pressed="true"
+          class="filter-chip rounded-full border border-brand-200 bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition"
+        >
+          Todos
+        </button>
+        {temas.map(tema => (
+          <button
+            type="button"
+            data-filter={tema}
+            aria-pressed="false"
+            class="filter-chip rounded-full border border-brand-200 bg-white px-4 py-2 text-sm font-semibold text-brand-700 transition hover:border-brand-500"
           >
             {tema}
-          </a>
+          </button>
         ))}
       </div>
     </div>
 
-    <!-- PRÓXIMAS PUBLICAÇÕES -->
-    <h2 class="section-title">
-      {selectedCategory ? `${selectedCategory}` : 'Próximas publicações'}
-    </h2>
-
-    <div class="articles-grid">
-      {filteredArticles.map((article, idx) => {
-        const htmlFile = article['Artigo_Arquivo_HTML'];
-        const filePath = htmlFile ? path.join(articlesDir, path.basename(htmlFile)) : '';
-        const exists = htmlFile && htmlFile.toLowerCase() !== 'nan' && fs.existsSync(filePath);
-        const imageUrl = article['Imagem_Miniatura'] || getThematicImage(article['Tema'], article['Palavra-chave principal'], idx);
-
-        if (exists) {
-          return (
-            <a class="article-card" href={`/${path.basename(htmlFile)}`}>
-              <img
-                src={imageUrl}
-                alt={article['Palavra-chave principal']}
-                class="article-image"
-                onError="this.style.opacity='0'"
-              />
-              <div class="article-content">
-                <div class="article-meta">
-                  <span class="article-tag">{article['Tema']}</span>
-                  <span class="article-date">{article['Data']}</span>
-                </div>
-                <h3 class="article-title">{article['Palavra-chave principal']}</h3>
-                <p class="article-desc">Descubra dicas e insights sobre {article['Palavra-chave principal'].toLowerCase()}.</p>
-              </div>
-            </a>
-          );
-        } else {
-          return (
-            <div class="article-card coming-soon">
-              <img
-                src={imageUrl}
-                alt={article['Palavra-chave principal']}
-                class="article-image"
-                onError="this.style.opacity='0'"
-              />
-              <div class="article-content">
-                <div class="article-meta">
-                  <span class="article-tag">{article['Tema']}</span>
-                  <span class="article-date">{article['Data']} · {article['Horário']}</span>
-                </div>
-                <h3 class="article-title">{article['Palavra-chave principal']}</h3>
-                <p class="article-desc">Em breve — Fique atento para este artigo especial!</p>
-              </div>
-            </div>
-          );
-        }
-      })}
+    <div class="mt-12 grid gap-8 sm:grid-cols-2 xl:grid-cols-3" data-grid>
+      {grid.map(article => (
+        <div data-tema={article.tema}>
+          <ThumbCard article={article} />
+        </div>
+      ))}
     </div>
 
-    <p class="footer-text">
-      📊 {articles.length} artigo(s) publicado(s) · Este conteúdo é informativo e não substitui a orientação de um profissional.
+    <p class="mt-14 text-center text-sm text-ink-500">
+      {published.length} artigo(s) publicado(s) · Conteúdo informativo, não substitui orientação profissional.
     </p>
+  </section>
+
+  <div class="mt-24">
+    <PromoBanner />
   </div>
-</Layout>
+</PremiumLayout>
+
+<script>
+  const ACTIVE = ['bg-brand-600', 'text-white'];
+  const IDLE = ['bg-white', 'text-brand-700'];
+
+  const group = document.querySelector<HTMLElement>('[data-filter-group]');
+  const cards = document.querySelectorAll<HTMLElement>('[data-grid] > [data-tema]');
+
+  group?.addEventListener('click', event => {
+    const btn = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-filter]');
+    if (!btn) return;
+    const filter = btn.dataset.filter!;
+
+    group.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach(b => {
+      const on = b === btn;
+      b.setAttribute('aria-pressed', String(on));
+      b.classList.remove(...(on ? IDLE : ACTIVE));
+      b.classList.add(...(on ? ACTIVE : IDLE));
+    });
+    cards.forEach(card => {
+      card.hidden = filter !== 'all' && card.dataset.tema !== filter;
+    });
+  });
+</script>
