@@ -321,8 +321,8 @@ def main():
         lacunas = identificar_lacunas(paa, todos_h2s)
         dificuldade = classificar_dificuldade(organicos)
         fontes = fontes_oficiais(lidas, keyword)
-        autoridades = sorted({a['url'].split('/')[2] for a in organicos
-                              if any(x in a['url'] for x in AUTORIDADE_PADROES)})[:5]
+        autoridades = sorted({o['link'].split('/')[2] for o in organicos
+                              if any(x in o['link'] for x in AUTORIDADE_PADROES)})[:5]
         divergencias = calcular_divergencias(row, dificuldade, lidas, organicos)
         h2s_unicos = list(dict.fromkeys(todos_h2s))
 
