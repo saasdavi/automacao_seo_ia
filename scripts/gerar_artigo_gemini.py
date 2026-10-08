@@ -409,7 +409,13 @@ def main():
                     modelo = novo
                     html = com_tentativas(prompt, chave, modelo)
                 html, analise = separar_html(html)
-                problemas = validar_artigo(html)
+                chave_pexels = os.environ.get('PEXELS_API_KEY', '').strip()
+                if chave_pexels:
+                    html = inserir_imagens_pexels(html, chave_pexels)
+                problemas = validar_artigo(html) + validar_imagens(html)
+                nota = problema_nota(analise)
+                if nota:
+                    problemas.append(nota)
                 if problemas:
                     raise RuntimeError('; '.join(problemas))
         except (requests.RequestException, RuntimeError) as e:
