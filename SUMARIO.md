@@ -66,3 +66,21 @@ prompts/                    (prompt_mestre_gemini_v4.txt, .gitkeep)
 - ✅ Colunas do CSV exatamente na ordem especificada (24 colunas)
 - ✅ UTF-8 com BOM no CSV
 - ✅ Todos os arquivos das tarefas 2–7 presentes e commitados em `main`
+
+---
+
+## 🔍 Teste dos Workflows (08/10/2026)
+
+### CI (`.github/workflows/ci.yml`)
+- ✅ Executado no GitHub: **success** (run mais recente, commit `0c9b7a6`)
+- 🔧 Ajuste feito: validação de sintaxe agora tolera ausência de `src/` (compila `scripts/` sempre e `src/` apenas se existir)
+
+### Enriquecer SERP (`.github/workflows/enriquecer-serp.yml`)
+- ✅ Disparado via API (`workflow_dispatch`, sem input → default 10): run `37724016920` → **success**
+- Todos os steps passaram: Checkout, Setup Python, Install deps, Rodar script SERP, Commit CSV + push
+- Log do script na nuvem: `✅ Nenhuma linha na fila. Processo concluído.` — comportamento correto, pois `calendario_blog_1_ano.csv` ainda tem 0 linhas
+- Compatibilidade de secret confirmada: `secrets.SERPER_API_KEY || secrets.SERPAPI_KEY` resolve o nome configurado (`SERPAPI_KEY`)
+- Push do step Commit funcionou com `permissions: contents: write` (`Everything up-to-date` = nada a commitar, esperado)
+
+### Pendência única restante
+- ⚠️ Os CSVs-fonte reais (`planejamento novo blog - Calendário.csv`, `Keyword Stats...csv`, `pautas-mestre...csv`) **ainda não existem no GitHub** (verificado na árvore git da branch main). Sem eles, a Action roda mas processa 0 artigos. Fazer upload pela interface (Add file → Upload files em `dados/`) ou enviar conteúdo no chat para push automático.
