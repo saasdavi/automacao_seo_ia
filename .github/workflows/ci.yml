@@ -16,7 +16,7 @@ jobs:
       - name: Instalar dependências
         run: pip install -r requirements.txt pyyaml
       - name: Validar sintaxe dos scripts Python
-        run: python -m compileall -q scripts/ src/
+        run: python -m compileall -q scripts/ && [ ! -d src ] || python -m compileall -q src/
       - name: Validar YAML dos workflows
         run: python -c "import yaml,glob; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')]; print('workflows OK')"
       - name: Validar estrutura do calendário (dados/calendario_blog_1_ano.csv)
