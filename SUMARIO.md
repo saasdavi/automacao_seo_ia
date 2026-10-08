@@ -84,3 +84,26 @@ prompts/                    (prompt_mestre_gemini_v4.txt, .gitkeep)
 
 ### Pendência única restante
 - ⚠️ Os CSVs-fonte reais (`planejamento novo blog - Calendário.csv`, `Keyword Stats...csv`, `pautas-mestre...csv`) **ainda não existem no GitHub** (verificado na árvore git da branch main). Sem eles, a Action roda mas processa 0 artigos. Fazer upload pela interface (Add file → Upload files em `dados/`) ou enviar conteúdo no chat para push automático.
+
+## 🔬 Auditoria ponta a ponta para o teste completo (08/10/2026)
+
+### ✅ Comprovado funcionando (execução real via API do GitHub)
+| Etapa | Evidência |
+|---|---|
+| CI (`ci.yml`) | run 37724201822 → success no push |
+| Action SERP — todos os steps | runs 37724016920, 37724446425, 37724458330 → success (Checkout, Python 3.11, pip install, script, commit+push) |
+| Compatibilidade de secret | `SERPER_API_KEY \|\| SERPAPI_KEY` funciona com o nome configurado (`SERPAPI_KEY`) |
+| Permissão de push do workflow | step "Commit CSV atualizado" conclui sem erro |
+| Secrets presentes | GEMINI_API_KEY, GH_REPO, GH_TOKEN, PEXELS_API_KEY, SERPAPI_KEY ✔ |
+
+### ❌ Bloqueios para o "teste completo" (Vercel + Gemini + publicação)
+1. **CSVs-fonte não estão no GitHub** — `/contents/dados` mostra apenas `.gitkeep`, `saida/` e `calendario_blog_1_ano.csv` (443 bytes = só cabeçalho, 0 linhas). Sem as 1.095 linhas, a Action processa 0 artigos (roda "sucesso" instantâneo).
+2. **Nenhum código usa o GEMINI_API_KEY** — o repo tem só 2 workflows; a geração do artigo ainda é manual (copiar coluna `GEMINI_Prompt_Pronto` e colar no chat Gemini). Não existe automação Gemini publicada.
+3. **Vercel não conectado** — API `/deployments` retorna 0; e o repo não contém app publicável (sem frontend/API route/vercel.json). Deploy na Vercel exigiria primeiro criar esse app.
+
+### 📋 Ordem correta para chegar ao deploy
+- [ ] 1. Enviar `planejamento novo blog - Calendário.csv` (+ Keyword Stats) para `dados/` no GitHub
+- [ ] 2. Popularizar `calendario_blog_1_ano.csv` com as 1.095 linhas + Status="Fila"
+- [ ] 3. Rodar Action SERP (lotes=10) e validar colunas preenchidas com dados reais
+- [ ] 4. Criar etapa de geração: opção B (workflow `gerar-artigos-gemini.yml`) ou C (app Vercel com API route que lê o CSV e chama Gemini)
+- [ ] 5. Conectar repo ao Vercel e testar publicação de 1 artigo
