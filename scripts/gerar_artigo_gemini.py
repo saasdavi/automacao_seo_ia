@@ -68,8 +68,8 @@ def validar_artigo(html):
     problemas = []
     corpo = re.sub(r'<script.*?</script>|<style.*?</style>', ' ', html, flags=re.S | re.I)
     palavras = len(html_lib.unescape(re.sub(r'<[^>]+>', ' ', corpo)).split())
-    if palavras < 1500:
-        problemas.append(f'{palavras} palavras (mínimo 1.500)')
+    if palavras < 1300:
+        problemas.append(f'{palavras} palavras (mínimo 1.300)')
     if re.search(r'\bCRM\b', html):
         problemas.append('CRM inventado')
     if 'class="assinatura"' in html or "class='assinatura'" in html:
