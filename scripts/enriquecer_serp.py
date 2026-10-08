@@ -11,9 +11,8 @@ import time
 # ============================================
 # CONFIGURAÇÕES
 # ============================================
-# Coleta as duas chaves possiveis (o workflow injeta ambas; a primeira que autenticar vence)
-_SERPER_KEYS = [k for k in (os.environ.get('SERPER_API_KEY'), os.environ.get('SERPAPI_KEY')) if k]
-SERPER_API_KEY = _SERPER_KEYS[0] if _SERPER_KEYS else None
+# Chave do SerpAPI (serpapi.com), lida do secret SERPAPI_KEY
+SERPAPI_KEY = os.environ.get('SERPAPI_KEY')
 MAX_ROWS_PER_RUN = int(os.environ.get('MAX_ROWS', '10'))
 INPUT_CSV = 'dados/calendario_blog_1_ano.csv'
 OUTPUT_CSV = 'dados/calendario_blog_1_ano.csv'
@@ -23,25 +22,28 @@ SAIDA_MD_DIR = 'dados/saida/md'
 # ============================================
 # FUNÇÕES SERP
 # ============================================
-def buscar_serper(keyword, num=5):
-    """Busca no Google via Serper.dev"""
-    url = "https://google.serper.dev/search"
-    payload = {"q": keyword, "gl": "br", "hl": "pt", "num": num}
-    # Tenta cada chave configurada (resolve conflito SERPER_API_KEY x SERPAPI_KEY)
-    # Deduplica: se os dois secrets tiverem a mesma chave, testa apenas uma vez
-    keys_to_try = list(dict.fromkeys(_SERPER_KEYS)) or [None]
-    for key in keys_to_try:
-        try:
-            headers = {'X-API-KEY': key, 'Content-Type': 'application/json'}
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
-            if response.status_code == 200:
-                return response.json()
-            # Diagnóstico: qual chave falhou e por quê (ex.: 403 = inválida/sem créditos)
-            sufixo = f" (chave ...{key[-4:]})" if key else ""
-            print(f"⚠️ HTTP {response.status_code} na Serper para '{keyword}'{sufixo}: {response.text[:150]}")
-        except Exception as e:
-            print(f"Erro na API para {keyword}: {e}")
-    return None
+def buscar_serpapi(keyword, num=5):
+    """Busca no Google via SerpAPI (serpapi.com) e devolve no formato usado pelo script"""
+    params = {
+        "engine": "google", "q": keyword, "api_key": SERPAPI_KEY,
+        "gl": "br", "hl": "pt", "google_domain": "google.com.br", "num": num,
+    }
+    try:
+        response = requests.get("https://serpapi.com/search.json", params=params, timeout=20)
+        if response.status_code != 200:
+            # Diagnóstico: 401 = chave inválida; 429 = limite de buscas do plano
+            print(f"⚠️ HTTP {response.status_code} na SerpAPI para '{keyword}': {response.text[:150]}")
+            return None
+        dados = response.json()
+    except Exception as e:
+        print(f"Erro na API para {keyword}: {e}")
+        return None
+    # Converte para a estrutura que o restante do script já usa
+    return {
+        'organic': [{'title': o.get('title', ''), 'link': o.get('link', '')} for o in dados.get('organic_results', [])],
+        'peopleAlsoAsk': [{'question': q.get('question', '')} for q in dados.get('related_questions', [])],
+        'relatedSearches': [{'query': r.get('query', '')} for r in dados.get('related_searches', [])],
+    }
 
 def analisar_pagina(url):
     """Extrai título e H2s de uma página"""
@@ -159,8 +161,8 @@ ENTREGUE NO FINAL: Análise de Pontuação com nota de 0 a 10, checklist de 30 i
 def main():
     print(" Iniciando enriquecimento SERP...")
     
-    if not SERPER_API_KEY:
-        print("❌ SERPER_API_KEY não configurada. Abortando.")
+    if not SERPAPI_KEY:
+        print("❌ SERPAPI_KEY não configurada. Abortando.")
         sys.exit(1)
     
     df = pd.read_csv(INPUT_CSV)
@@ -208,7 +210,7 @@ def main():
             
         print(f"🔍 [{idx+1}/{len(fila)}] Buscando: {keyword}")
         
-        dados = buscar_serper(keyword)
+        dados = buscar_serpapi(keyword)
         if not dados:
             print(f"⚠️ Falha na API para {keyword}")
             continue
@@ -288,7 +290,7 @@ def main():
 
         # 1) BRIEFING SERP — dados da pesquisa no formato do prompt de auditoria
         serp_md = [f"# Briefing SERP — {keyword}", ""]
-        serp_md.append(f"**Consulta:** {datetime.now().strftime('%Y-%m-%d')} | Google Brasil (gl=br, hl=pt) | via Serper.dev")
+        serp_md.append(f"**Consulta:** {datetime.now().strftime('%Y-%m-%d')} | Google Brasil (gl=br, hl=pt) | via SerpAPI")
         serp_md.append(f"**Palavra-chave:** {keyword} | **Tema:** {row['Tema']} | **Volume (planilha):** {row['Volume (dado)']} | **Concorrência Ads (planilha):** {row['Concorrência']}")
         if row.get('Variações (sinônimos)'):
             serp_md.append(f"**Variações:** {row['Variações (sinônimos)']}")
@@ -326,7 +328,7 @@ def main():
     
     if processados == 0:
         # Sem isso a execução termina "verde" mesmo com a API recusando todas as buscas
-        print(f"❌ Nenhum dos {len(fila)} artigos foi pesquisado. Verifique a chave da Serper (HTTP 403 = inválida ou sem créditos).")
+        print(f"❌ Nenhum dos {len(fila)} artigos foi pesquisado. Verifique a chave do SerpAPI (HTTP 401 = inválida; 429 = limite de buscas do plano).")
         sys.exit(1)
 
     print(f"✅ Concluído! {processados} de {len(fila)} artigos processados.")
