@@ -75,6 +75,7 @@ def main():
 
     os.makedirs(SAIDA_DIR, exist_ok=True)
     manifesto = {}
+    vistos = set()
     temas = temas_do_calendario()
 
     for tema in temas:
@@ -87,6 +88,10 @@ def main():
 
         pool = []
         for foto in fotos:
+            # Mesma foto não entra em dois temas (evita repetir na mesma página)
+            if foto['id'] in vistos:
+                continue
+            vistos.add(foto['id'])
             nome = f"{slug(tema)}-{foto['id']}.jpg"
             caminho = os.path.join(SAIDA_DIR, nome)
             if not os.path.exists(caminho):
