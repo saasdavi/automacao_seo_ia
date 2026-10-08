@@ -36,9 +36,11 @@ jobs:
         MAX_ROWS: '1'
       run: python scripts/enriquecer_serp.py
 
-    - name: Gerar artigo com Gemini
+    - name: Gerar artigo com IA
       env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        # 'openrouter' usa modelos gratuitos (lista em OPENROUTER_MODELS no script)
+        LLM_PROVIDER: openrouter
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         MAX_ARTIGOS: '1'
       run: python scripts/gerar_artigo_gemini.py
 

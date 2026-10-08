@@ -8,10 +8,11 @@
 5. Nome: `SERPAPI_KEY`
 6. Valor: cole sua chave
 
-## Gemini API (geração dos artigos)
-1. Acesse: https://aistudio.google.com/apikey
-2. Crie a chave gratuita
-3. Nome do secret: `GEMINI_API_KEY`
+## OpenRouter (geração dos artigos com modelos gratuitos)
+1. Acesse: https://openrouter.ai/settings/keys
+2. Crie uma chave e defina um limite de gastos na conta
+3. Nome do secret: `OPENROUTER_API_KEY`
+4. Modelos usados (gratuitos): `nvidia/nemotron-3-super-120b-a12b:free` e `google/gemma-4-31b-it:free`
 
 ## Pexels API (fotos das miniaturas)
 1. Acesse: https://www.pexels.com/api/
