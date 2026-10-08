@@ -42,18 +42,7 @@ const articles = allRows
   })
   .sort((a, b) => parseDate(b['Data']).getTime() - parseDate(a['Data']).getTime());
 
-const upcomingArticles = allRows
-  .filter(row => {
-    const htmlFile = row['Artigo_Arquivo_HTML'];
-    if (!htmlFile || htmlFile.toLowerCase() === 'nan') return true;
-    const filePath = path.join(articlesDir, path.basename(htmlFile));
-    return !fs.existsSync(filePath);
-  })
-  .sort((a, b) => parseDate(a['Data']).getTime() - parseDate(b['Data']).getTime())
-  .slice(0, 8);
-
 const hero = articles[0];
-const cards = articles.slice(1, 9);
 ---
 
 <Layout title="Início" description="Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental.">
@@ -63,160 +52,80 @@ const cards = articles.slice(1, 9);
       text-decoration: none;
       color: inherit;
       background: linear-gradient(135deg, #006400, #0a7d0a);
-      border-radius: 14px;
+      border-radius: 0;
       overflow: hidden;
-      margin: 18px 0 30px;
-      box-shadow: 0 6px 18px rgba(0, 100, 0, 0.18);
+      margin: 0;
+      box-shadow: 0 8px 24px rgba(0, 100, 0, 0.2);
     }
 
     .hero-body {
-      padding: 42px 36px;
+      padding: 60px 40px;
+      max-width: 100%;
     }
 
     .hero .badge {
       display: inline-block;
       background: #ffd54d;
       color: #333;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-weight: bold;
-      padding: 4px 12px;
+      padding: 6px 14px;
       border-radius: 20px;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
 
     .hero-title {
       color: #fff;
-      font-size: 2.1rem;
-      margin: 0 0 12px;
-      line-height: 1.25;
+      font-size: 2.8rem;
+      margin: 0 0 16px;
+      line-height: 1.2;
+      font-weight: bold;
     }
 
     .hero-desc {
       color: #e8f3e8;
-      font-size: 1.1rem;
-      margin: 0 0 16px;
-      max-width: 640px;
+      font-size: 1.2rem;
+      margin: 0 0 20px;
+      max-width: 700px;
+      line-height: 1.6;
     }
 
     .hero-meta {
       color: #cfe6cf;
-      font-size: 0.9rem;
+      font-size: 1rem;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 18px;
+    .wrap {
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 0;
     }
 
-    .card {
-      background: #fff;
-      border: 1px solid #e4ece4;
-      border-radius: 12px;
-      padding: 20px;
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.15s, box-shadow 0.15s;
-      display: block;
-    }
+    @media (max-width: 768px) {
+      .hero-body {
+        padding: 40px 20px;
+      }
 
-    .card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-    }
+      .hero-title {
+        font-size: 2rem;
+      }
 
-    .card h3 {
-      color: #006400;
-      font-size: 1.15rem;
-      margin: 10px 0 8px;
-      line-height: 1.35;
-    }
-
-    .card p {
-      font-size: 0.95rem;
-      color: #444;
-      margin: 0;
-    }
-
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .tag {
-      background: #e8f3e8;
-      color: #006400;
-      font-size: 0.75rem;
-      font-weight: bold;
-      padding: 3px 10px;
-      border-radius: 14px;
-    }
-
-    .date {
-      color: #777;
-      font-size: 0.8rem;
-      white-space: nowrap;
-    }
-
-    .card-soon {
-      opacity: 0.75;
-      border-style: dashed;
-      cursor: default;
-    }
-
-    .soon {
-      font-style: italic;
-      color: #777;
-    }
-
-    h2.section {
-      color: #006400;
-      font-size: 1.5rem;
-      border-bottom: 2px solid #e0e8e0;
-      padding-bottom: 6px;
-      margin-top: 8px;
+      .hero-desc {
+        font-size: 1rem;
+      }
     }
   </style>
 
-  {hero && (
-    <a class="hero" href={`/${path.basename(hero['Artigo_Arquivo_HTML'])}`}>
-      <div class="hero-body">
-        <span class="badge">★ Em destaque · {hero['Tema']}</span>
-        <h2 class="hero-title">{hero['Palavra-chave principal']}</h2>
-        <p class="hero-desc">Artigo sobre {hero['Palavra-chave principal'].toLowerCase()}. Tema: {hero['Tema']}.</p>
-        <span class="hero-meta">📅 Publicado em {hero['Data']} às {hero['Horário']}</span>
-      </div>
-    </a>
-  )}
-
-  <h2 class="section">Próximas publicações</h2>
-  <div class="grid">
-    {cards.map(article => (
-      <a class="card" href={`/${path.basename(article['Artigo_Arquivo_HTML'])}`}>
-        <div class="card-top">
-          <span class="tag">{article['Tema']}</span>
-          <span class="date">{article['Data']} · {article['Horário']}</span>
+  <div class="wrap">
+    {hero && (
+      <a class="hero" href={`/${path.basename(hero['Artigo_Arquivo_HTML'])}`}>
+        <div class="hero-body">
+          <span class="badge">★ Em destaque · {hero['Tema']}</span>
+          <h1 class="hero-title">{hero['Palavra-chave principal']}</h1>
+          <p class="hero-desc">Artigo informativo sobre {hero['Palavra-chave principal'].toLowerCase()}. Tema: {hero['Tema']}.</p>
+          <span class="hero-meta">📅 Publicado em {hero['Data']} às {hero['Horário']}</span>
         </div>
-        <h3>{article['Palavra-chave principal']}</h3>
-        <p>Artigo informativo sobre {article['Palavra-chave principal'].toLowerCase()}.</p>
       </a>
-    ))}
-
-    {upcomingArticles.map(article => (
-      <div class="card card-soon">
-        <div class="card-top">
-          <span class="tag">{article['Tema']}</span>
-          <span class="date">{article['Data']} · {article['Horário']}</span>
-        </div>
-        <h3>{article['Palavra-chave principal']}</h3>
-        <p class="soon">Em produção — entra no ar automaticamente nesta data.</p>
-      </div>
-    ))}
+    )}
   </div>
-
-  <p style="color: #555; font-size: 0.95rem; margin-top: 26px;">
-    📊 {articles.length} artigo(s) já publicado(s). Este conteúdo é informativo e não substitui a orientação de um profissional de saúde.
-  </p>
 </Layout>
