@@ -1,7 +1,4 @@
 {
-  "buildCommand": "python scripts/gerar_home.py",
-  "outputDirectory": "dados/saida/html",
-  "env": {
-    "PYTHON_VERSION": "3.12"
-  }
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
 }

@@ -1,12 +1,28 @@
+# Astro
+dist/
+.astro/
+node_modules/
+
+# Dependencies
+package-lock.json
+yarn.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.env
-.venv
-env/
 venv/
-.DS_Store
-*.csv
-!calendario_blog_1_ano.csv
-!planejamento novo blog - Calendário.csv
+env/

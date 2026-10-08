@@ -1,0 +1,133 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} — Mente Leve</title>
+    <meta name="description" content={description || "Blog Mente Leve: artigos sobre saúde mental e bem-estar"} />
+    <style is:global>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Georgia, 'Times New Roman', serif;
+        color: #222;
+        background: #fafafa;
+        line-height: 1.7;
+      }
+
+      .site-header {
+        background: #006400;
+        color: #fff;
+        padding: 16px 20px;
+        text-align: center;
+      }
+
+      .site-header .site-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+      }
+
+      .site-header .site-tag {
+        font-size: 0.9rem;
+        opacity: 0.9;
+      }
+
+      .site-nav {
+        background: #f0f4f0;
+        border-bottom: 1px solid #dfe8df;
+        padding: 10px 20px;
+        text-align: center;
+      }
+
+      .site-nav a {
+        color: #006400;
+        text-decoration: none;
+        font-size: 0.95rem;
+        margin: 0 10px;
+        white-space: nowrap;
+      }
+
+      .site-nav a:hover {
+        text-decoration: underline;
+      }
+
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 24px 20px;
+      }
+
+      .site-footer {
+        background: #f7f7f7;
+        border-top: 1px solid #eaeaea;
+        margin-top: 48px;
+        padding: 28px 20px;
+        text-align: center;
+        font-size: 0.9rem;
+        color: #555;
+      }
+
+      .site-footer a {
+        color: #006400;
+        text-decoration: none;
+        margin: 0 8px;
+      }
+
+      @media (max-width: 600px) {
+        .site-nav a {
+          display: inline-block;
+          margin: 4px 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="site-header">
+      <div class="site-title">🌿 Mente Leve</div>
+      <div class="site-tag">Saúde mental e bem-estar · novos artigos todos os dias às 09h, 12h e 20h</div>
+    </div>
+
+    <nav class="site-nav">
+      <a href="/">Início</a>
+      <a href="/sobre">Sobre</a>
+      <a href="/contato">Contato</a>
+      <a href="/politica-editorial">Política editorial</a>
+      <a href="/privacidade">Privacidade</a>
+    </nav>
+
+    <div class="wrap">
+      <slot />
+    </div>
+
+    <footer class="site-footer">
+      <div>
+        <a href="/">Início</a> ·
+        <a href="/sobre">Sobre</a> ·
+        <a href="/contato">Contato</a> ·
+        <a href="/politica-editorial">Política editorial</a> ·
+        <a href="/privacidade">Privacidade</a>
+      </div>
+      <p style="margin-top: 14px;">
+        🌿 <strong>Mente Leve</strong> — conteúdo informativo sobre saúde mental e bem-estar.<br>
+        Este site não substitui diagnóstico ou tratamento profissional.
+      </p>
+      <p>© 2026 Mente Leve. Todos os direitos reservados.</p>
+    </footer>
+  </body>
+</html>
