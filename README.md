@@ -34,6 +34,6 @@
 | C - Gemini (auto) | GEMINI_Prompt_Pronto, Nota Autoavaliada, Link Artigo Gerado, Data Publicação |
 
 ## Créditos Gratuitos
-- Serper.dev: 2.500 buscas/mês grátis
+- Serperapi: 250 buscas/mês grátis
 - GitHub Actions: 2.000 minutos/mês grátis
 - Gemini API: camada gratuita generosa
