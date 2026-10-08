@@ -7,13 +7,15 @@ const href = article.slug ?? '#artigos';
 ---
 
 <section class="relative isolate overflow-hidden bg-brand-900">
-  <img
-    src={article.imagem}
-    alt=""
-    class="absolute inset-0 -z-10 size-full object-cover opacity-55"
-    loading="eager"
-    fetchpriority="high"
-  />
+  {article.imagem && (
+    <img
+      src={article.imagem}
+      alt=""
+      class="absolute inset-0 -z-10 size-full object-cover opacity-55"
+      loading="eager"
+      fetchpriority="high"
+    />
+  )}
   <div class="absolute inset-0 -z-10 bg-gradient-to-br from-brand-900/95 via-brand-700/70 to-brand-500/30"></div>
 
   <div class="mx-auto grid max-w-7xl gap-10 px-5 pt-16 pb-20 lg:grid-cols-[1.25fr_1fr] lg:items-end lg:px-8 lg:pt-28 lg:pb-28">
@@ -40,10 +42,12 @@ const href = article.slug ?? '#artigos';
       </div>
     </div>
 
-    <div class="hidden justify-self-end lg:block">
-      <div class="thumb-zoom w-full max-w-sm overflow-hidden rounded-3xl ring-1 ring-white/20 shadow-glow">
-        <img src={article.imagem} alt={article.titulo} class="aspect-[4/5] w-full object-cover" />
+    {article.imagem && (
+      <div class="hidden justify-self-end lg:block">
+        <div class="thumb-zoom w-full max-w-sm overflow-hidden rounded-3xl ring-1 ring-white/20 shadow-glow">
+          <img src={article.imagem} alt={article.titulo} class="aspect-[4/5] w-full object-cover" />
+        </div>
       </div>
-    </div>
+    )}
   </div>
 </section>
