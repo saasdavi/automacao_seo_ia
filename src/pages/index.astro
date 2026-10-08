@@ -27,17 +27,19 @@ function parseDate(dateStr) {
   return new Date(year, month - 1, day);
 }
 
-// Imagem padrão por tema
-function getDefaultImage(tema) {
+// Imagem temática por tema/palavra-chave
+function getThematicImage(tema, keyword) {
   const images = {
-    'Estresse': 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=300&fit=crop',
-    'Sono': 'https://images.unsplash.com/photo-1541123603104-852fc75f7404?w=400&h=300&fit=crop',
-    'Ansiedade': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=300&fit=crop',
-    'Meditação': 'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=400&h=300&fit=crop',
-    'Memória': 'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=400&h=300&fit=crop',
-    'Bem-estar': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&h=300&fit=crop',
+    'Estresse': 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop',
+    'Sono': 'https://images.unsplash.com/photo-1541123603104-852fc75f7404?w=600&h=400&fit=crop',
+    'Ansiedade': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop',
+    'Meditação': 'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=600&h=400&fit=crop',
+    'Memória': 'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop',
+    'Mindfulness': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop',
+    'Qualidade de vida': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop',
+    'Bem-estar': 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&h=400&fit=crop',
   };
-  return images[tema] || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop';
+  return images[tema] || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop';
 }
 
 // Carregar artigos
@@ -64,65 +66,63 @@ const upcomingArticles = allRows
     return !fs.existsSync(filePath);
   })
   .sort((a, b) => parseDate(a['Data']).getTime() - parseDate(b['Data']).getTime())
-  .slice(0, 6);
+  .slice(0, 9);
 
-const hero1 = articles[0];
-const hero2 = articles[1];
-const otherArticles = articles.slice(2, 8);
+const hero = articles[0];
 ---
 
 <Layout title="Início" description="Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental.">
   <style>
+    .hero-section {
+      width: 100vw;
+      margin-left: calc(-50vw + 50%);
+      background: linear-gradient(135deg, #006400 0%, #0a7d0a 100%);
+      margin-bottom: 60px;
+    }
+
     .hero {
       display: block;
       text-decoration: none;
       color: inherit;
-      background: linear-gradient(135deg, #006400, #0a7d0a);
-      border-radius: 0;
       overflow: hidden;
-      margin: 0 0 40px 0;
-      box-shadow: 0 8px 24px rgba(0, 100, 0, 0.2);
     }
 
     .hero-body {
-      padding: 60px 40px;
+      padding: 80px 40px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
     .hero .badge {
       display: inline-block;
       background: #ffd54d;
       color: #333;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       font-weight: bold;
-      padding: 6px 14px;
+      padding: 8px 16px;
       border-radius: 20px;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
 
     .hero-title {
       color: #fff;
-      font-size: 2.8rem;
-      margin: 0 0 16px;
-      line-height: 1.2;
+      font-size: 3.2rem;
+      margin: 0 0 20px;
+      line-height: 1.1;
       font-weight: bold;
     }
 
     .hero-desc {
       color: #e8f3e8;
-      font-size: 1.2rem;
-      margin: 0 0 20px;
-      max-width: 700px;
+      font-size: 1.3rem;
+      margin: 0 0 24px;
+      max-width: 750px;
       line-height: 1.6;
     }
 
     .hero-meta {
       color: #cfe6cf;
-      font-size: 1rem;
-    }
-
-    .hero-2 {
-      background: linear-gradient(135deg, #1a5f1a, #006400);
-      margin: 0 0 50px 0;
+      font-size: 1.05rem;
     }
 
     .wrap {
@@ -133,47 +133,47 @@ const otherArticles = articles.slice(2, 8);
 
     .section-title {
       color: #006400;
-      font-size: 1.8rem;
+      font-size: 2rem;
       font-weight: bold;
-      margin: 50px 0 30px 0;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #e0e8e0;
+      margin: 60px 0 40px 0;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #006400;
     }
 
     .articles-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 24px;
-      margin-bottom: 50px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 28px;
+      margin-bottom: 60px;
     }
 
     .article-card {
       background: #fff;
-      border: 1px solid #e4ece4;
-      border-radius: 12px;
+      border-radius: 14px;
       overflow: hidden;
       text-decoration: none;
       color: inherit;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.3s, box-shadow 0.3s;
       display: flex;
       flex-direction: column;
       height: 100%;
+      box-shadow: 0 4px 12px rgba(0, 100, 0, 0.1);
     }
 
     .article-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 24px rgba(0, 100, 0, 0.15);
+      transform: translateY(-6px);
+      box-shadow: 0 16px 32px rgba(0, 100, 0, 0.2);
     }
 
     .article-image {
       width: 100%;
-      height: 180px;
+      height: 220px;
       object-fit: cover;
       background: #f0f0f0;
     }
 
     .article-content {
-      padding: 20px;
+      padding: 24px;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -183,49 +183,49 @@ const otherArticles = articles.slice(2, 8);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 12px;
+      margin-bottom: 14px;
       font-size: 0.8rem;
     }
 
     .article-tag {
       background: #e8f3e8;
       color: #006400;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: bold;
-      padding: 3px 10px;
-      border-radius: 12px;
+      padding: 4px 12px;
+      border-radius: 14px;
       white-space: nowrap;
     }
 
     .article-date {
-      color: #777;
+      color: #999;
       font-size: 0.8rem;
       white-space: nowrap;
     }
 
     .article-title {
       color: #006400;
-      font-size: 1.15rem;
+      font-size: 1.25rem;
       font-weight: bold;
-      margin: 0 0 10px;
+      margin: 0 0 12px;
       line-height: 1.3;
     }
 
     .article-desc {
-      color: #555;
-      font-size: 0.9rem;
+      color: #666;
+      font-size: 0.95rem;
       line-height: 1.5;
       margin: 0;
       flex: 1;
     }
 
     .article-card.coming-soon {
-      opacity: 0.7;
+      opacity: 0.75;
     }
 
     .article-card.coming-soon .article-image {
-      opacity: 0.6;
+      opacity: 0.5;
     }
 
     .article-card.coming-soon .article-desc {
@@ -234,31 +234,25 @@ const otherArticles = articles.slice(2, 8);
     }
 
     .footer-text {
-      color: #555;
+      color: #777;
       font-size: 0.95rem;
-      margin: 30px 0;
+      margin: 40px 0;
       text-align: center;
+      padding: 20px 0;
+      border-top: 1px solid #e0e8e0;
     }
 
     @media (max-width: 768px) {
       .hero-body {
-        padding: 40px 20px;
+        padding: 50px 20px;
       }
 
       .hero-title {
-        font-size: 2rem;
+        font-size: 2.2rem;
       }
 
       .hero-desc {
-        font-size: 1rem;
-      }
-
-      .hero {
-        margin: 0 0 30px 0;
-      }
-
-      .hero-2 {
-        margin: 0 0 40px 0;
+        font-size: 1.1rem;
       }
 
       .wrap {
@@ -266,41 +260,39 @@ const otherArticles = articles.slice(2, 8);
       }
 
       .section-title {
-        font-size: 1.4rem;
-        margin: 30px 0 20px 0;
+        font-size: 1.6rem;
+        margin: 40px 0 24px 0;
       }
 
       .articles-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
         gap: 16px;
-        margin-bottom: 30px;
+        margin-bottom: 40px;
+      }
+
+      .article-content {
+        padding: 16px;
+      }
+
+      .article-title {
+        font-size: 1.1rem;
       }
     }
   </style>
 
-  <!-- BANNER HERO 1 (DESTAQUE PRINCIPAL) -->
-  {hero1 && (
-    <a class="hero" href={`/${path.basename(hero1['Artigo_Arquivo_HTML'])}`}>
-      <div class="hero-body">
-        <span class="badge">★ Em destaque · {hero1['Tema']}</span>
-        <h1 class="hero-title">{hero1['Palavra-chave principal']}</h1>
-        <p class="hero-desc">Artigo informativo sobre {hero1['Palavra-chave principal'].toLowerCase()}. Tema: {hero1['Tema']}.</p>
-        <span class="hero-meta">📅 Publicado em {hero1['Data']} às {hero1['Horário']}</span>
-      </div>
-    </a>
-  )}
-
-  <!-- BANNER HERO 2 (DESTAQUE SECUNDÁRIO) -->
-  {hero2 && (
-    <a class="hero hero-2" href={`/${path.basename(hero2['Artigo_Arquivo_HTML'])}`}>
-      <div class="hero-body">
-        <span class="badge">📌 Recomendado · {hero2['Tema']}</span>
-        <h2 class="hero-title">{hero2['Palavra-chave principal']}</h2>
-        <p class="hero-desc">Artigo sobre {hero2['Palavra-chave principal'].toLowerCase()}. Tema: {hero2['Tema']}.</p>
-        <span class="hero-meta">📅 Publicado em {hero2['Data']} às {hero2['Horário']}</span>
-      </div>
-    </a>
-  )}
+  <!-- HERO FULL WIDTH -->
+  <div class="hero-section">
+    {hero && (
+      <a class="hero" href={`/${path.basename(hero['Artigo_Arquivo_HTML'])}`}>
+        <div class="hero-body">
+          <span class="badge">★ Em destaque · {hero['Tema']}</span>
+          <h1 class="hero-title">{hero['Palavra-chave principal']}</h1>
+          <p class="hero-desc">Artigo informativo sobre {hero['Palavra-chave principal'].toLowerCase()}. Mergulhe neste conteúdo essencial sobre {hero['Tema'].toLowerCase()}.</p>
+          <span class="hero-meta">📅 {hero['Data']} às {hero['Horário']}</span>
+        </div>
+      </a>
+    )}
+  </div>
 
   <div class="wrap">
     <!-- PRÓXIMAS PUBLICAÇÕES -->
@@ -311,7 +303,7 @@ const otherArticles = articles.slice(2, 8);
         const htmlFile = article['Artigo_Arquivo_HTML'];
         const filePath = htmlFile ? path.join(articlesDir, path.basename(htmlFile)) : '';
         const exists = htmlFile && htmlFile.toLowerCase() !== 'nan' && fs.existsSync(filePath);
-        const imageUrl = article['Imagem_Miniatura'] || getDefaultImage(article['Tema']);
+        const imageUrl = article['Imagem_Miniatura'] || getThematicImage(article['Tema'], article['Palavra-chave principal']);
 
         if (exists) {
           return (
@@ -323,7 +315,7 @@ const otherArticles = articles.slice(2, 8);
                   <span class="article-date">{article['Data']}</span>
                 </div>
                 <h3 class="article-title">{article['Palavra-chave principal']}</h3>
-                <p class="article-desc">Artigo sobre {article['Palavra-chave principal'].toLowerCase()}.</p>
+                <p class="article-desc">Descubra dicas e insights sobre {article['Palavra-chave principal'].toLowerCase()}.</p>
               </div>
             </a>
           );
@@ -334,10 +326,10 @@ const otherArticles = articles.slice(2, 8);
               <div class="article-content">
                 <div class="article-meta">
                   <span class="article-tag">{article['Tema']}</span>
-                  <span class="article-date">{article['Data']}</span>
+                  <span class="article-date">{article['Data']} · {article['Horário']}</span>
                 </div>
                 <h3 class="article-title">{article['Palavra-chave principal']}</h3>
-                <p class="article-desc">Em breve — {article['Horário']}</p>
+                <p class="article-desc">Em breve — Fique atento para este artigo especial!</p>
               </div>
             </div>
           );
