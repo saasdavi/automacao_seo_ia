@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* Tokens do modelo premium — identidade Mente Leve */
+@theme {
+  --color-brand-50: #f1f8f1;
+  --color-brand-100: #e1f0e1;
+  --color-brand-200: #bfe0bf;
+  --color-brand-500: #0a7d0a;
+  --color-brand-600: #006400;
+  --color-brand-700: #054305;
+  --color-brand-900: #022402;
+
+  --color-sun-300: #ffe680;
+  --color-sun-400: #ffd54d;
+
+  --color-ink-900: #1c211c;
+  --color-ink-700: #3d453d;
+  --color-ink-500: #6b736b;
+  --color-ink-300: #c4cbc4;
+  --color-paper: #fbfcfa;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Georgia, "Times New Roman", serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --shadow-lift: 0 1px 2px rgb(0 40 0 / 0.06), 0 12px 32px -12px rgb(0 60 0 / 0.18);
+  --shadow-glow: 0 24px 60px -20px rgb(0 40 0 / 0.45);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-paper font-body text-ink-900 antialiased;
+  }
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+}
+
+/* Miniatura com zoom suave no hover */
+@layer components {
+  .thumb-zoom img {
+    transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .thumb-zoom:hover img {
+    transform: scale(1.05);
+  }
+}

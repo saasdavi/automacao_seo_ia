@@ -1,0 +1,49 @@
+---
+interface Props {
+  article: { titulo: string; tema: string; data: string; horario: string; slug: string | null; descricao: string; imagem: string };
+}
+const { article } = Astro.props;
+const href = article.slug ?? '#artigos';
+---
+
+<section class="relative isolate overflow-hidden bg-brand-900">
+  <img
+    src={article.imagem}
+    alt=""
+    class="absolute inset-0 -z-10 size-full object-cover opacity-55"
+    loading="eager"
+    fetchpriority="high"
+  />
+  <div class="absolute inset-0 -z-10 bg-gradient-to-br from-brand-900/95 via-brand-700/70 to-brand-500/30"></div>
+
+  <div class="mx-auto grid max-w-7xl gap-10 px-5 pt-16 pb-20 lg:grid-cols-[1.25fr_1fr] lg:items-end lg:px-8 lg:pt-28 lg:pb-28">
+    <div class="text-white">
+      <span class="inline-flex items-center gap-2 rounded-full bg-sun-400 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-ink-900">
+        ★ Em destaque
+      </span>
+      <p class="mt-6 text-sm font-medium text-brand-100/90">{article.tema}</p>
+      <h1 class="mt-3 max-w-3xl text-4xl leading-[1.08] font-semibold sm:text-5xl lg:text-6xl">
+        {article.titulo}
+      </h1>
+      {article.descricao && (
+        <p class="mt-6 max-w-2xl text-lg leading-relaxed text-brand-100/90">{article.descricao}</p>
+      )}
+      <div class="mt-9 flex flex-wrap items-center gap-4">
+        <a
+          href={href}
+          class="group inline-flex items-center gap-2 rounded-full bg-sun-400 px-7 py-3.5 font-semibold text-ink-900 shadow-glow transition hover:-translate-y-0.5 hover:bg-sun-300"
+        >
+          Ler artigo
+          <span class="transition group-hover:translate-x-1">→</span>
+        </a>
+        <span class="text-sm text-brand-100/80">📅 {article.data} · {article.horario}</span>
+      </div>
+    </div>
+
+    <div class="hidden justify-self-end lg:block">
+      <div class="thumb-zoom w-full max-w-sm overflow-hidden rounded-3xl ring-1 ring-white/20 shadow-glow">
+        <img src={article.imagem} alt={article.titulo} class="aspect-[4/5] w-full object-cover" />
+      </div>
+    </div>
+  </div>
+</section>
