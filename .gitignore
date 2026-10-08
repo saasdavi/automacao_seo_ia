@@ -1,8 +1,12 @@
-# Compiled and build artifacts
 __pycache__/
-*.pycnode_modules/
-.next/
-dist/
-build/
-*.log
-node_modules/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+.DS_Store
+*.csv
+!calendario_blog_1_ano.csv
+!planejamento novo blog - Calendário.csv
