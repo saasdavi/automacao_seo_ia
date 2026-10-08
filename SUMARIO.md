@@ -107,3 +107,30 @@ prompts/                    (prompt_mestre_gemini_v4.txt, .gitkeep)
 - [ ] 3. Rodar Action SERP (lotes=10) e validar colunas preenchidas com dados reais
 - [ ] 4. Criar etapa de geração: opção B (workflow `gerar-artigos-gemini.yml`) ou C (app Vercel com API route que lê o CSV e chama Gemini)
 - [ ] 5. Conectar repo ao Vercel e testar publicação de 1 artigo
+
+
+---
+
+## 🧪 TESTE PONTA A PONTA (2026-10-08) — RESULTADO REAL
+
+### ✅ Dados carregados com sucesso
+- `dados/planejamento novo blog - Calendário.csv` → **1.095 artigos** confirmados
+- Validações: 365 dias únicos | 08/10/2026→07/10/2027 | horários 09h/12h/20h | 0 duplicatas
+- Distribuição por tema confere com tabela de potencial (Estresse 129, Insônia 128, Memória 128... Autocuidado 9, Autoconhecimento 3)
+- `dados/calendario_blog_1_ano.csv` populado: 1.095 linhas × 24 colunas, Status="Fila", UTF-8 BOM → **push feito e verificado no remoto (1.095 linhas)**
+
+### ✅ Action "Enriquecer SERP" — executada de verdade (runs 37725375434 e 37725468962)
+- Todos os steps: success (checkout, Python, pip, script, commit+push)
+- Script leu o CSV real e processou as keywords corretamente ("estresse", "meditação para dormir")
+- Input `lotes` funcionando (testado com 2 e 1)
+
+### ❌ ÚNICO PROBLEMA RESTANTE — chave Serper inválida
+Log oficial da Action:
+```
+⚠️ HTTP 403 na Serper para 'estresse': {"message":"Unauthorized.","statusCode":403}
+```
+Significa: o secret `SERPAPI_KEY` no GitHub contém uma chave **inválida/expirada/copiada com erro**.
+Correção (2 min): https://serper.dev → dashboard → copiar API Key exata → GitHub Settings → Secrets → atualizar `SERPAPI_KEY` → rodar a Action de novo.
+
+### 🔧 Melhoria aplicada neste teste
+- `buscar_serper()` agora loga HTTP status + corpo do erro (commit b3a822d) — diagnósticos futuros instantâneos.
