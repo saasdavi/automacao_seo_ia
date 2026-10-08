@@ -41,7 +41,7 @@ MODELO_CEREBRAS = os.environ.get('CEREBRAS_MODEL', 'qwen-3-235b-a22b-instruct-25
 MODELOS_OPENROUTER = [
     m.strip() for m in os.environ.get(
         'OPENROUTER_MODELS',
-        'thinkingmachines/inkling:free,apodex/apodex-1.1-mini:free,nvidia/nemotron-3-super-120b-a12b:free,nvidia/nemotron-3.5-lightning:free,thinkingmachines/inkling-small:free,dots-studio/dots-3-note-preview:free,poolside/laguna-s-2.1:free,poolside/laguna-xs-2.1:free,cohere/north-mini-code:free,liquid/lfm-2.5-2.6b:free,google/gemma-4-31b-it:free',
+        'apodex/apodex-1.1-mini:free,nvidia/nemotron-3-super-120b-a12b:free,nvidia/nemotron-3.5-lightning:free,thinkingmachines/inkling-small:free,dots-studio/dots-3-note-preview:free,poolside/laguna-s-2.1:free,poolside/laguna-xs-2.1:free,cohere/north-mini-code:free,liquid/lfm-2.5-2.6b:free,google/gemma-4-31b-it:free',
     ).split(',') if m.strip()
 ]
 MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
@@ -245,7 +245,9 @@ def gerar_com_lista(prompt, chave, modelos):
                 ultimo_erro = e
                 texto = None
             except (RuntimeError, requests.RequestException) as e:
-                if not eh_temporario(e) and 'resposta vazia' not in str(e):
+                # 403/404 = modelo indisponível para esta chave: passa ao próximo. 401 (chave) segue fatal.
+                indisponivel = 'HTTP 403' in str(e) or 'HTTP 404' in str(e)
+                if not eh_temporario(e) and 'resposta vazia' not in str(e) and not indisponivel:
                     raise
                 print(f'↪️ {modelo} indisponível agora; tentando o próximo ({e})')
                 ultimo_erro = e

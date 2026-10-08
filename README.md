@@ -30,7 +30,7 @@ Settings → Secrets and variables → Actions:
 - **"HTTP 429 na SerpAPI"**: o limite de buscas do plano foi atingido (250/mês no gratuito).
 - **Execução vermelha com "Nenhum dos artigos foi pesquisado"**: a pesquisa falhou em todas as linhas. Veja a causa acima.
 - **Geração falhou em todos os modelos**: confira `OPENROUTER_API_KEY` e a lista `OPENROUTER_MODELS` no script. Modelos gratuitos podem sair do ar ou atingir o limite diário; o log mostra qual respondeu.
-- **Modelos usados** (gratuitos, em ordem): `thinkingmachines/inkling:free`, `apodex/apodex-1.1-mini:free`, `nvidia/nemotron-3-super-120b-a12b:free`, `nvidia/nemotron-3.5-lightning:free`, `thinkingmachines/inkling-small:free`, `dots-studio/dots-3-note-preview:free`, `poolside/laguna-s-2.1:free`, `poolside/laguna-xs-2.1:free`, `cohere/north-mini-code:free`, `liquid/lfm-2.5-2.6b:free`, `google/gemma-4-31b-it:free`.
+- **Modelos usados** (gratuitos, em ordem): `apodex/apodex-1.1-mini:free`, `nvidia/nemotron-3-super-120b-a12b:free`, `nvidia/nemotron-3.5-lightning:free`, `thinkingmachines/inkling-small:free`, `dots-studio/dots-3-note-preview:free`, `poolside/laguna-s-2.1:free`, `poolside/laguna-xs-2.1:free`, `cohere/north-mini-code:free`, `liquid/lfm-2.5-2.6b:free`, `google/gemma-4-31b-it:free`.
 
 ### Geração manual (opcional)
 - Abra `dados/calendario_blog_1_ano.csv`
