@@ -119,6 +119,13 @@ def extrair_long_tails(organicos):
             long_tails.append({'termo': t, 'fonte': item.get('link', '')})
     return long_tails[:30]
 
+CAMINHO_PROMPT_MESTRE = os.path.join('prompts', 'prompt_mestre_gemini_v4.txt')
+
+def ler_prompt_mestre():
+    """Regras de escrita vêm do arquivo do prompt mestre (fonte única, não do código)."""
+    with open(CAMINHO_PROMPT_MESTRE, encoding='utf-8') as f:
+        return f.read().strip()
+
 def montar_prompt_gemini(row, dados_serp):
     """Monta o texto exato que o Gemini vai ler"""
     return f"""CONTEXTO DA PLANILHA:
@@ -149,17 +156,9 @@ H2s COMUNS NO TOPO:
 {dados_serp['h2s_formatado']}
 
 ---
-Agora gere o artigo seguindo o Prompt Mestre v4 abaixo:
+Agora gere o artigo seguindo o Prompt Mestre abaixo:
 
-Você é um REDATOR SÊNIOR DE SEO E CONTEÚDO, especializado em E-E-A-T, Helpful Content System, Schema Markup e diretrizes YMYL do Google.
-
-FORMATO DE ENTREGA: HTML completo com Schema JSON-LD tipo MedicalWebPage, imagens do Pexels (4 imagens), CSS interno profissional, mínimo 1.500 palavras, parágrafos ≤50 palavras, H2s baseados nas PAA, seção "Resumindo", seção "Fontes" com 6+ URLs diretas, aviso final de conteúdo informativo, assinatura com CRM.
-
-REGRAS: Palavra-chave no H1, primeiro parágrafo e 1 H2. Hierarquia H1→H2→H3. Mínimo 3 links contextuais para fontes oficiais. Alt text único 50-125 caracteres para cada imagem.
-
-PROIBIDO: Palavra "cura", expressões de IA ("vale ressaltar", "é importante destacar", "concluindo"), metalinguagem, dosagens de medicamentos, promessas de resultado garantido, fontes com homepage genérica.
-
-ENTREGUE NO FINAL: Análise de Pontuação com nota de 0 a 10, checklist de 30 itens, tabela de critérios com peso, correções E-E-A-T aplicadas, validação do Schema Markup, lacunas do topo cobertas, pontos de atenção, e status PRONTO PARA IMPORTAÇÃO (se nota ≥ 9,0).
+{ler_prompt_mestre()}
 ---
 """
 
