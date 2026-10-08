@@ -96,6 +96,20 @@ def validar_artigo(html):
     return problemas
 
 
+NOTA_MINIMA = 9.0
+
+
+def problema_nota(analise):
+    """Lê a nota final da análise interna (ex.: 'Nota final: 9,2 / 10'). Sem nota ou abaixo de 9 = reprovado."""
+    m = re.search(r'Nota final[^0-9]{0,15}(\d+(?:[.,]\d+)?)', analise or '', flags=re.I)
+    if not m:
+        return 'sem nota final na análise'
+    nota = float(m.group(1).replace(',', '.'))
+    if nota < NOTA_MINIMA:
+        return f'nota {nota:.1f} (mínimo {NOTA_MINIMA:.1f})'
+    return None
+
+
 def separar_html(texto):
     """Separa o artigo (do <!DOCTYPE até </html>) do que a IA escreveu depois.
 
@@ -262,6 +276,9 @@ def gerar_com_lista(prompt, chave, modelos):
             ultimo_erro = e
             continue
         problemas = validar_artigo(html)
+        nota = problema_nota(analise)
+        if nota:
+            problemas.append(nota)
         if not problemas:
             return html, analise
         print(f'↪️ {modelo} reprovado: {"; ".join(problemas)}')
