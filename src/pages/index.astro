@@ -66,8 +66,9 @@ const upcomingArticles = allRows
   .sort((a, b) => parseDate(a['Data']).getTime() - parseDate(b['Data']).getTime())
   .slice(0, 6);
 
-const hero = articles[0];
-const otherArticles = articles.slice(1, 7);
+const hero1 = articles[0];
+const hero2 = articles[1];
+const otherArticles = articles.slice(2, 8);
 ---
 
 <Layout title="Início" description="Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental.">
@@ -79,7 +80,7 @@ const otherArticles = articles.slice(1, 7);
       background: linear-gradient(135deg, #006400, #0a7d0a);
       border-radius: 0;
       overflow: hidden;
-      margin: 0 0 50px 0;
+      margin: 0 0 40px 0;
       box-shadow: 0 8px 24px rgba(0, 100, 0, 0.2);
     }
 
@@ -117,6 +118,11 @@ const otherArticles = articles.slice(1, 7);
     .hero-meta {
       color: #cfe6cf;
       font-size: 1rem;
+    }
+
+    .hero-2 {
+      background: linear-gradient(135deg, #1a5f1a, #006400);
+      margin: 0 0 50px 0;
     }
 
     .wrap {
@@ -251,6 +257,10 @@ const otherArticles = articles.slice(1, 7);
         margin: 0 0 30px 0;
       }
 
+      .hero-2 {
+        margin: 0 0 40px 0;
+      }
+
       .wrap {
         padding: 0 20px;
       }
@@ -268,14 +278,26 @@ const otherArticles = articles.slice(1, 7);
     }
   </style>
 
-  <!-- BANNER HERO -->
-  {hero && (
-    <a class="hero" href={`/${path.basename(hero['Artigo_Arquivo_HTML'])}`}>
+  <!-- BANNER HERO 1 (DESTAQUE PRINCIPAL) -->
+  {hero1 && (
+    <a class="hero" href={`/${path.basename(hero1['Artigo_Arquivo_HTML'])}`}>
       <div class="hero-body">
-        <span class="badge">★ Em destaque · {hero['Tema']}</span>
-        <h1 class="hero-title">{hero['Palavra-chave principal']}</h1>
-        <p class="hero-desc">Artigo informativo sobre {hero['Palavra-chave principal'].toLowerCase()}. Tema: {hero['Tema']}.</p>
-        <span class="hero-meta">📅 Publicado em {hero['Data']} às {hero['Horário']}</span>
+        <span class="badge">★ Em destaque · {hero1['Tema']}</span>
+        <h1 class="hero-title">{hero1['Palavra-chave principal']}</h1>
+        <p class="hero-desc">Artigo informativo sobre {hero1['Palavra-chave principal'].toLowerCase()}. Tema: {hero1['Tema']}.</p>
+        <span class="hero-meta">📅 Publicado em {hero1['Data']} às {hero1['Horário']}</span>
+      </div>
+    </a>
+  )}
+
+  <!-- BANNER HERO 2 (DESTAQUE SECUNDÁRIO) -->
+  {hero2 && (
+    <a class="hero hero-2" href={`/${path.basename(hero2['Artigo_Arquivo_HTML'])}`}>
+      <div class="hero-body">
+        <span class="badge">📌 Recomendado · {hero2['Tema']}</span>
+        <h2 class="hero-title">{hero2['Palavra-chave principal']}</h2>
+        <p class="hero-desc">Artigo sobre {hero2['Palavra-chave principal'].toLowerCase()}. Tema: {hero2['Tema']}.</p>
+        <span class="hero-meta">📅 Publicado em {hero2['Data']} às {hero2['Horário']}</span>
       </div>
     </a>
   )}
