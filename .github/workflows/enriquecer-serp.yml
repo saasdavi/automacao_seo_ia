@@ -12,6 +12,8 @@ on:
 jobs:
   enriquecer:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -26,7 +28,8 @@ jobs:
 
     - name: Rodar script SERP
       env:
-        SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+        # Compatível com os dois nomes de secret configurados no repositório
+        SERPER_API_KEY: ${{ secrets.SERPER_API_KEY || secrets.SERPAPI_KEY }}
         MAX_ROWS: ${{ github.event.inputs.lotes }}
       run: python scripts/enriquecer_serp.py
 
