@@ -51,6 +51,6 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action Artigos"
         git add dados/calendario_blog_1_ano.csv dados/saida/md/ dados/saida/html/
-        git diff --staged --quiet || git commit -m "🤖 Artigo automático: pesquisa SERP e geração Gemini"
+        git diff --staged --quiet || git commit -m "🤖 Artigo automático: pesquisa SERP e geração por IA"
         git pull --rebase -q origin "$GITHUB_REF_NAME"
         git push origin "HEAD:$GITHUB_REF_NAME"

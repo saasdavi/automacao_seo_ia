@@ -23,6 +23,7 @@ Variáveis de ambiente:
 
 import csv
 import datetime
+import html as html_lib
 import os
 import random
 import re
@@ -60,6 +61,39 @@ def limpar(texto):
 def data_brasilia():
     """Data e hora atuais em Brasília (UTC-3), para datePublished do artigo."""
     return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3))).isoformat(timespec='seconds')
+
+
+def validar_artigo(html):
+    """Lista o que impede publicar o artigo. Lista vazia = aprovado."""
+    problemas = []
+    corpo = re.sub(r'<script.*?</script>|<style.*?</style>', ' ', html, flags=re.S | re.I)
+    palavras = len(html_lib.unescape(re.sub(r'<[^>]+>', ' ', corpo)).split())
+    if palavras < 1500:
+        problemas.append(f'{palavras} palavras (mínimo 1.500)')
+    if re.search(r'\bCRM\b', html):
+        problemas.append('CRM inventado')
+    if 'class="assinatura"' in html or "class='assinatura'" in html:
+        problemas.append('assinatura com credenciais')
+    if 'example.com' in html or 'SUA_CHAVE' in html:
+        problemas.append('URL ou chave de exemplo')
+    hoje = data_brasilia()[:10]
+    m = re.search(r'"datePublished"\s*:\s*"([^"]+)"', html)
+    if not m or m.group(1)[:10] != hoje:
+        problemas.append(f'datePublished diferente de {hoje}')
+    # Regras de SEO e estrutura do prompt
+    if len(re.findall(r'<h1[\s>]', html, flags=re.I)) != 1:
+        problemas.append('precisa de exatamente 1 H1')
+    if not re.search(r'<h2[^>]*>\s*Resumindo\s*</h2>', html, flags=re.I):
+        problemas.append('falta a seção "Resumindo"')
+    if len(re.findall(r'<a [^>]*href="https?://', html, flags=re.I)) < 6:
+        problemas.append('menos de 6 links para fontes')
+    paragrafos_longos = sum(
+        1 for p_ in re.findall(r'<p[^>]*>(.*?)</p>', corpo, flags=re.S | re.I)
+        if len(html_lib.unescape(re.sub(r'<[^>]+>', ' ', p_)).split()) > 50
+    )
+    if paragrafos_longos > 2:
+        problemas.append(f'{paragrafos_longos} parágrafos com mais de 50 palavras')
+    return problemas
 
 
 def separar_html(texto):
@@ -169,16 +203,32 @@ def gerar_openrouter(prompt, chave, modelo):
 
 
 def gerar_com_lista(prompt, chave, modelos):
-    """Tenta cada modelo da lista na ordem. Passa para o próximo só em erro temporário."""
+    """Tenta cada modelo na ordem até um artigo passar na validação.
+
+    Passa para o próximo modelo em erro temporário ou quando o artigo é reprovado.
+    Devolve (html, análise).
+    """
     ultimo_erro = None
     for modelo in modelos:
         try:
-            return com_tentativas(prompt, chave, modelo)
+            texto = com_tentativas(prompt, chave, modelo)
         except (RuntimeError, requests.RequestException) as e:
             if not eh_temporario(e):
                 raise
             print(f'↪️ {modelo} indisponível agora; tentando o próximo')
             ultimo_erro = e
+            continue
+        try:
+            html, analise = separar_html(texto)
+        except RuntimeError as e:
+            print(f'↪️ {modelo} reprovado: {e}')
+            ultimo_erro = e
+            continue
+        problemas = validar_artigo(html)
+        if not problemas:
+            return html, analise
+        print(f'↪️ {modelo} reprovado: {"; ".join(problemas)}')
+        ultimo_erro = RuntimeError('; '.join(problemas))
     raise ultimo_erro
 
 
@@ -217,8 +267,8 @@ def main():
             with open(prompt_path, encoding='utf-8') as f:
                 prompt = f.read().replace('{{DATA_HOJE}}', data_brasilia())
             if PROVEDOR == 'openrouter':
-                # Lista de modelos gratuitos: tenta um por vez
-                html = gerar_com_lista(prompt, chave, MODELOS_OPENROUTER)
+                # Lista de modelos: separa e valida dentro do laço, passa ao próximo se reprovar
+                html, analise = gerar_com_lista(prompt, chave, MODELOS_OPENROUTER)
             else:
                 try:
                     html = com_tentativas(prompt, chave, modelo)
@@ -235,7 +285,10 @@ def main():
                     print(f'↪️ {modelo} indisponível agora; tentando {novo}')
                     modelo = novo
                     html = com_tentativas(prompt, chave, modelo)
-            html, analise = separar_html(html)
+                html, analise = separar_html(html)
+                problemas = validar_artigo(html)
+                if problemas:
+                    raise RuntimeError('; '.join(problemas))
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1
