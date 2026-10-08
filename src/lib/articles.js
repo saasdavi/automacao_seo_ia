@@ -67,6 +67,14 @@ function capitalize(str) {
   return str ? str.charAt(0).toLocaleUpperCase('pt-BR') + str.slice(1) : str;
 }
 
+// Momento de publicação do artigo: Data (dd/mm/aaaa) + Horário (ex.: 09h), em Brasília (UTC-3)
+function momentoPublicacao(row) {
+  const [d, m, y] = (row['Data'] || '').split('/');
+  const hora = parseInt(row['Horário'], 10);
+  if (!y || Number.isNaN(hora)) return NaN;
+  return new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${String(hora).padStart(2, '0')}:00:00-03:00`).getTime();
+}
+
 function parseDate(str) {
   const [d, m, y] = str.split('/');
   return new Date(Number(y), Number(m) - 1, Number(d));
@@ -94,6 +102,7 @@ export async function loadArticles() {
       data: row['Data'],
       horario: row['Horário'],
       time: parseDate(row['Data']).getTime(),
+      publicarEm: momentoPublicacao(row),
       slug: hasFile ? `/${file}` : null,
       descricao: hasFile ? metaDescription(file) : '',
       // Miniatura própria por artigo (coluna Imagem_Miniatura) tem prioridade sobre a Pexels
@@ -102,8 +111,11 @@ export async function loadArticles() {
     };
   });
 
-  const published = rows.filter(r => r.slug).sort((a, b) => b.time - a.time);
-  const upcoming = rows.filter(r => !r.slug).sort((a, b) => a.time - b.time).slice(0, 9);
+  // Só entra em 'publicados' quando a data e hora da planilha já chegaram
+  const agora = Date.now();
+  const noAr = r => r.slug && r.publicarEm <= agora;
+  const published = rows.filter(noAr).sort((a, b) => b.publicarEm - a.publicarEm);
+  const upcoming = rows.filter(r => !noAr(r)).sort((a, b) => a.time - b.time).slice(0, 9);
   const temas = [...new Set(rows.map(r => r.tema).filter(Boolean))].sort();
 
   atribuirMiniaturas([...published, ...upcoming]);
