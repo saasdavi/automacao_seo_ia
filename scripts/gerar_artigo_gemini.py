@@ -337,7 +337,7 @@ def gerar_uma(prompt, chave, modelo):
             return None
 
 
-def montar_reescrita(prompt, html_anterior, problemas):
+def montar_reescrita(prompt, html_anterior, problemas, analise_anterior=None):
     """Mensagem de correção: o artigo anterior e a lista exata do que reprovou."""
     palavras = len(re.sub(r'<[^>]+>', ' ', html_anterior or '').split())
     faltam = max(0, 1400 - palavras)
@@ -349,7 +349,9 @@ def montar_reescrita(prompt, html_anterior, problemas):
             "O artigo abaixo foi reprovado na validação. Corrija SOMENTE os problemas listados e mantenha o que já estava bom.\n"
             "Devolva o documento HTML completo (do <!DOCTYPE html> até </html>) e, depois, a análise de pontuação.\n\n"
             "PROBLEMAS A CORRIGIR:\n" + "\n".join(linhas) + "\n\n"
-            "ARTIGO REPROVADO:\n" + (html_anterior or '(sem HTML válido na resposta anterior)'))
+            + (("ANÁLISE DE PONTUAÇÃO QUE VOCÊ MESMA FEZ (os itens com nota baixa mostram o que corrigir):\n"
+                + analise_anterior[:4000] + "\n\n") if analise_anterior else "")
+            + "ARTIGO REPROVADO:\n" + (html_anterior or '(sem HTML válido na resposta anterior)'))
 
 
 def gerar_validado(prompt, chave, modelos, rodadas):
@@ -359,9 +361,9 @@ def gerar_validado(prompt, chave, modelos, rodadas):
     esgotar as reescritas. Devolve (html, análise)."""
     ultimo_erro = None
     for modelo in modelos:
-        anterior, problemas = None, None
+        anterior, problemas, analise_ant = None, None, None
         for n in range(rodadas + 1):
-            atual = prompt if n == 0 else montar_reescrita(prompt, anterior, problemas)
+            atual = prompt if n == 0 else montar_reescrita(prompt, anterior, problemas, analise_ant)
             if n:
                 print(f'✏️ {modelo}: reescrita {n}/{rodadas} com a lista de problemas')
             texto = gerar_uma(atual, chave, modelo)
@@ -370,7 +372,7 @@ def gerar_validado(prompt, chave, modelos, rodadas):
             try:
                 html, analise = separar_html(texto)
             except RuntimeError as e:
-                problemas, anterior = [str(e)], texto
+                problemas, anterior, analise_ant = [str(e)], texto, None
                 print(f'↪️ {modelo} reprovado: {e}')
                 ultimo_erro = e
                 continue
@@ -383,7 +385,7 @@ def gerar_validado(prompt, chave, modelos, rodadas):
                 problemas.append(nota)
             if not problemas:
                 return html, analise
-            anterior = html
+            anterior, analise_ant = html, analise
             print(f'↪️ {modelo} reprovado: {"; ".join(problemas)}')
             ultimo_erro = RuntimeError('; '.join(problemas))
     raise ultimo_erro or RuntimeError('nenhum modelo gerou artigo')
