@@ -190,6 +190,14 @@ def gerar_cerebras(prompt, chave, modelo):
     return limpar(r.json()['choices'][0]['message']['content'])
 
 
+class LimiteOpenRouter(RuntimeError):
+    """429 do OpenRouter: limite de uso temporário. Carrega o tempo de espera sugerido."""
+
+    def __init__(self, mensagem, espera):
+        super().__init__(mensagem)
+        self.espera = espera
+
+
 def gerar_openrouter(prompt, chave, modelo):
     r = requests.post(
         URL_OPENROUTER,
@@ -197,6 +205,10 @@ def gerar_openrouter(prompt, chave, modelo):
         json={'model': modelo, 'messages': [{'role': 'user', 'content': prompt}], 'max_tokens': 8000},
         timeout=120,
     )
+    if r.status_code == 429:
+        retry = r.headers.get('Retry-After', '')
+        espera = int(retry) if retry.isdigit() else 300
+        raise LimiteOpenRouter(f'HTTP 429: {r.text[:200]}', espera)
     if r.status_code != 200:
         raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
     conteudo = r.json()['choices'][0]['message'].get('content')
@@ -209,18 +221,34 @@ def gerar_openrouter(prompt, chave, modelo):
 def gerar_com_lista(prompt, chave, modelos):
     """Tenta cada modelo na ordem até um artigo passar na validação.
 
-    Passa para o próximo modelo em erro temporário ou quando o artigo é reprovado.
-    Devolve (html, análise).
+    Em limite de uso (429) espera o tempo indicado pelo OpenRouter e tenta o mesmo
+    modelo de novo, no máximo 2 vezes. Passa ao próximo modelo em erro temporário,
+    resposta vazia ou artigo reprovado. Devolve (html, análise).
     """
     ultimo_erro = None
     for modelo in modelos:
-        try:
-            texto = com_tentativas(prompt, chave, modelo)
-        except (RuntimeError, requests.RequestException) as e:
-            if not eh_temporario(e) and 'resposta vazia' not in str(e):
-                raise
-            print(f'↪️ {modelo} indisponível agora; tentando o próximo ({e})')
-            ultimo_erro = e
+        esperas = 0
+        while True:
+            try:
+                texto = com_tentativas(prompt, chave, modelo)
+            except LimiteOpenRouter as e:
+                if esperas < 2:
+                    esperas += 1
+                    espera = min(e.espera, 600)
+                    print(f'⏳ {modelo} com limite de uso; esperando {espera}s ({esperas}/2)')
+                    time.sleep(espera)
+                    continue
+                print(f'↪️ {modelo} sem vaga após 2 esperas; tentando o próximo')
+                ultimo_erro = e
+                texto = None
+            except (RuntimeError, requests.RequestException) as e:
+                if not eh_temporario(e) and 'resposta vazia' not in str(e):
+                    raise
+                print(f'↪️ {modelo} indisponível agora; tentando o próximo ({e})')
+                ultimo_erro = e
+                texto = None
+            break
+        if texto is None:
             continue
         try:
             html, analise = separar_html(texto)
