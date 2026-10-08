@@ -304,8 +304,8 @@ def main():
             continue
         
         organicos = [o for o in dados.get('organic', []) if eh_concorrente(o.get('link', ''))][:5]
-        paa = [p['question'] for p in dados.get('peopleAlsoAsk', [])]
-        relacionadas = [r['query'] for r in dados.get('relatedSearches', [])]
+        paa = [p['question'] for p in dados.get('peopleAlsoAsk', []) if p.get('question')]
+        relacionadas = [r['query'] for r in dados.get('relatedSearches', []) if r.get('query')]
 
         # Lê cada concorrente de verdade. Só 'lida' conta quando há texto de artigo.
         analises = []
@@ -381,7 +381,10 @@ def main():
         if not analises:
             serp_md.append("(nenhum concorrente de blog ou site encontrado)")
         serp_md += ["", "## PERGUNTAS DO GOOGLE (As pessoas também perguntam)"] + ([f"- {p}" for p in paa] or ["(nenhuma retornada)"])
-        serp_md += ["", "## PESQUISAS RELACIONADAS"] + ([f"- {r}" for r in relacionadas] or ["(nenhuma retornada)"])
+        relacionadas = [r for r in relacionadas if r and r.strip()]
+        serp_md += ["", "## PESQUISAS RELACIONADAS"] + (
+            ([f"- {r}" for r in relacionadas] or ["(nenhuma retornada)"]) if len(lidas) >= 3
+            else ["(não usar: menos de 3 concorrentes lidos nesta consulta)"])
         serp_md += ["", "## LONG TAILS VISTAS NAS PÁGINAS LIDAS (termo | em quantas páginas aparece | na planilha?)"] + (
             [f"- {t} | {n} de {len(lidas)} | volume desconhecido" for t, n in long_tails]
             or ["(nenhum termo de 3+ palavras apareceu em 2 ou mais páginas lidas)"])
