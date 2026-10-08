@@ -1,0 +1,52 @@
+name: Artigos diários (SERP + Gemini)
+
+# 3 artigos por dia: 09h, 12h e 20h de Brasília (UTC-3)
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 09h
+    - cron: '0 15 * * *'   # 12h
+    - cron: '0 23 * * *'   # 20h
+  workflow_dispatch:
+
+# Uma execução por vez, para não gravar o CSV em paralelo
+concurrency:
+  group: artigos-diarios
+  cancel-in-progress: false
+
+jobs:
+  artigos:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install pandas requests beautifulsoup4
+
+    - name: Pesquisa SERP (SerpAPI) do próximo artigo da fila
+      env:
+        SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+        MAX_ROWS: '1'
+      run: python scripts/enriquecer_serp.py
+
+    - name: Gerar artigo com Gemini
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        MAX_ARTIGOS: '1'
+      run: python scripts/gerar_artigo_gemini.py
+
+    - name: Commit e push
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action Artigos"
+        git add dados/calendario_blog_1_ano.csv dados/saida/md/ dados/saida/html/
+        git diff --staged --quiet || git commit -m "🤖 Artigo automático: pesquisa SERP e geração Gemini"
+        git pull --rebase -q origin "$GITHUB_REF_NAME"
+        git push origin "HEAD:$GITHUB_REF_NAME"

@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""
+Gera artigos HTML com a API do Gemini a partir dos prompts criados pela pesquisa SERP.
+
+Pega linhas do calendário com Status = SERP_OK e sem artigo ainda, envia o prompt
+(GEMINI_Prompt_Arquivo) ao Gemini, salva o HTML em dados/saida/html/ e marca a linha
+como GERADO. A home publica o artigo sozinha, porque ela lista os HTMLs que existem.
+
+Variáveis de ambiente:
+    GEMINI_API_KEY   chave da API do Gemini (obrigatória)
+    GEMINI_MODEL     modelo (padrão: gemini-2.5-flash)
+    MAX_ARTIGOS      quantos artigos gerar nesta execução (padrão: 1)
+"""
+
+import csv
+import os
+import re
+import sys
+
+import requests
+
+CSV_PATH = os.path.join('dados', 'calendario_blog_1_ano.csv')
+HTML_DIR = os.path.join('dados', 'saida', 'html')
+MODELO = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
+URL = f'https://generativelanguage.googleapis.com/v1beta/models/{MODELO}:generateContent'
+
+
+def gerar(prompt, chave):
+    r = requests.post(
+        URL,
+        headers={'x-goog-api-key': chave, 'Content-Type': 'application/json'},
+        json={'contents': [{'parts': [{'text': prompt}]}]},
+        timeout=180,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
+    data = r.json()
+    partes = data.get('candidates', [{}])[0].get('content', {}).get('parts', [])
+    texto = ''.join(p.get('text', '') for p in partes).strip()
+    # Remove cercas de código (```html ... ```) se o modelo as incluir
+    texto = re.sub(r'^```(?:html)?\s*|\s*```$', '', texto, flags=re.IGNORECASE).strip()
+    if not texto:
+        raise RuntimeError('resposta vazia do Gemini')
+    return texto
+
+
+def main():
+    chave = os.environ.get('GEMINI_API_KEY')
+    if not chave:
+        print('❌ GEMINI_API_KEY não configurada. Abortando.')
+        return 1
+
+    with open(CSV_PATH, encoding='utf-8-sig', newline='') as f:
+        leitor = csv.DictReader(f)
+        colunas = leitor.fieldnames
+        linhas = list(leitor)
+
+    candidatas = [
+        l for l in linhas
+        if l.get('Status', '').strip() == 'SERP_OK'
+        and not l.get('Artigo_Arquivo_HTML', '').strip()
+        and os.path.isfile(l.get('GEMINI_Prompt_Arquivo', '').strip())
+    ][:MAX_ARTIGOS]
+
+    if not candidatas:
+        print('✅ Nenhum prompt pendente para gerar.')
+        return 0
+
+    geradas, falhas = 0, 0
+    for linha in candidatas:
+        prompt_path = linha['GEMINI_Prompt_Arquivo'].strip()
+        base = os.path.basename(prompt_path).replace('.prompt.md', '')
+        nome_html = f'{base}.html'
+        print(f'🤖 Gerando {nome_html} ({MODELO})...')
+        try:
+            with open(prompt_path, encoding='utf-8') as f:
+                html = gerar(f.read(), chave)
+        except (requests.RequestException, RuntimeError) as e:
+            print(f'⚠️ Falha em {base}: {e}')
+            falhas += 1
+            continue
+
+        os.makedirs(HTML_DIR, exist_ok=True)
+        with open(os.path.join(HTML_DIR, nome_html), 'w', encoding='utf-8') as f:
+            f.write(html)
+        linha['Artigo_Arquivo_HTML'] = nome_html
+        linha['Status'] = 'GERADO'
+        geradas += 1
+        print(f'✅ {nome_html} salvo')
+
+    with open(CSV_PATH, 'w', encoding='utf-8-sig', newline='') as f:
+        # \n (e não \r\n) para não reescrever todas as linhas do arquivo no git
+        escritor = csv.DictWriter(f, fieldnames=colunas, lineterminator='\n')
+        escritor.writeheader()
+        escritor.writerows(linhas)
+
+    print(f'Concluído: {geradas} gerado(s), {falhas} falha(s).')
+    return 1 if geradas == 0 else 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
