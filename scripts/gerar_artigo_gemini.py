@@ -442,6 +442,9 @@ def main():
             os.makedirs(ANALISE_DIR, exist_ok=True)
             with open(os.path.join(ANALISE_DIR, f'{base}.analise.md'), 'w', encoding='utf-8') as f:
                 f.write(analise + '\n')
+        m_nota = re.search(r'Nota final[^0-9]{0,15}(\d+(?:[.,]\d+)?)', analise or '', flags=re.I)
+        if m_nota:
+            linha['GEMINI_Nota_Autoavaliada'] = m_nota.group(1).replace('.', ',')
         linha['Artigo_Arquivo_HTML'] = nome_html
         linha['Status'] = 'GERADO'
         geradas += 1
