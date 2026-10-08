@@ -227,7 +227,13 @@ const filteredArticles = selectedCategory
       width: 100%;
       height: 220px;
       object-fit: cover;
-      background: #f0f0f0;
+      background: linear-gradient(135deg, #e8f3e8 0%, #d0e0d0 100%);
+      display: block;
+    }
+
+    .article-image:not([src]),
+    .article-image[src=""] {
+      background: linear-gradient(135deg, #e8f3e8 0%, #d0e0d0 100%);
     }
 
     .article-content {
@@ -465,7 +471,12 @@ const filteredArticles = selectedCategory
         if (exists) {
           return (
             <a class="article-card" href={`/${path.basename(htmlFile)}`}>
-              <img src={imageUrl} alt={article['Palavra-chave principal']} class="article-image" />
+              <img
+                src={imageUrl}
+                alt={article['Palavra-chave principal']}
+                class="article-image"
+                onError="this.style.opacity='0'"
+              />
               <div class="article-content">
                 <div class="article-meta">
                   <span class="article-tag">{article['Tema']}</span>
@@ -479,7 +490,12 @@ const filteredArticles = selectedCategory
         } else {
           return (
             <div class="article-card coming-soon">
-              <img src={imageUrl} alt={article['Palavra-chave principal']} class="article-image" />
+              <img
+                src={imageUrl}
+                alt={article['Palavra-chave principal']}
+                class="article-image"
+                onError="this.style.opacity='0'"
+              />
               <div class="article-content">
                 <div class="article-meta">
                   <span class="article-tag">{article['Tema']}</span>
