@@ -27,48 +27,63 @@ function parseDate(dateStr) {
   return new Date(year, month - 1, day);
 }
 
-// Imagem temática por keyword específica
-function getThematicImage(tema, keyword) {
-  const keywordLower = keyword.toLowerCase();
+// Pool de imagens variadas e coloridas por tema
+const themeImagePools = {
+  'Estresse': [
+    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1497206365907-3ff1691d8134?w=600&h=400&fit=crop&q=80',
+  ],
+  'Sono': [
+    'https://images.unsplash.com/photo-1541123603104-852fc75f7404?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1531407979302-6e57a23a7c4d?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1512941691920-25bda36ae95e?w=600&h=400&fit=crop&q=80',
+  ],
+  'Ansiedade': [
+    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1497206365907-3ff1691d8134?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
+  ],
+  'Meditação': [
+    'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop&q=80',
+  ],
+  'Memória': [
+    'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1507238691621-549b1be93ec1?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop&q=80',
+  ],
+  'Bem-estar': [
+    'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=600&h=400&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&h=400&fit=crop&q=80',
+  ],
+};
 
-  // Mapa detalhado por palavra-chave
-  const keywordImages = {
-    'estresse': 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop',
-    'meditação para dormir': 'https://images.unsplash.com/photo-1541123603104-852fc75f7404?w=600&h=400&fit=crop',
-    'memória': 'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop',
-    'inteligência emocional': 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=400&fit=crop',
-    'qualidade de vida': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop',
-    'meditação': 'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=600&h=400&fit=crop',
-    'mindfulness': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop',
-    'ansiedade': 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop',
-    'sono': 'https://images.unsplash.com/photo-1541123603104-852fc75f7404?w=600&h=400&fit=crop',
-    'respiração': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop',
-    'relaxamento': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop',
-    'saúde mental': 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=400&fit=crop',
-    'bem-estar': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop',
-    'atenção': 'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop',
-    'foco': 'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop',
-  };
+// Pool padrão com muitas imagens coloridas
+const defaultPool = [
+  'https://images.unsplash.com/photo-1506926613408-eca07ce68773?w=600&h=400&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=600&h=400&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1541123603104-852fc75f7404?w=600&h=400&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=400&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1497206365907-3ff1691d8134?w=600&h=400&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&h=400&fit=crop&q=80',
+];
 
-  // Buscar por palavra-chave específica
-  for (const [key, url] of Object.entries(keywordImages)) {
-    if (keywordLower.includes(key)) {
-      return url;
-    }
-  }
-
-  // Fallback por tema
-  const themeImages = {
-    'Estresse': 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&h=400&fit=crop',
-    'Sono': 'https://images.unsplash.com/photo-1541123603104-852fc75f7404?w=600&h=400&fit=crop',
-    'Ansiedade': 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&h=400&fit=crop',
-    'Meditação': 'https://images.unsplash.com/photo-1528148343865-f218b37f5a5c?w=600&h=400&fit=crop',
-    'Memória': 'https://images.unsplash.com/photo-1516534775068-bb57c960e9c8?w=600&h=400&fit=crop',
-    'Bem-estar': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop',
-    'Saúde Mental': 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=400&fit=crop',
-  };
-
-  return themeImages[tema] || 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=400&fit=crop';
+// Imagem temática com rotação para não repetir
+function getThematicImage(tema, keyword, index = 0) {
+  const pool = themeImagePools[tema] || defaultPool;
+  return pool[index % pool.length];
 }
 
 // Carregar artigos
@@ -328,11 +343,11 @@ const hero = articles[0];
     <h2 class="section-title">Próximas publicações</h2>
 
     <div class="articles-grid">
-      {upcomingArticles.map(article => {
+      {upcomingArticles.map((article, idx) => {
         const htmlFile = article['Artigo_Arquivo_HTML'];
         const filePath = htmlFile ? path.join(articlesDir, path.basename(htmlFile)) : '';
         const exists = htmlFile && htmlFile.toLowerCase() !== 'nan' && fs.existsSync(filePath);
-        const imageUrl = article['Imagem_Miniatura'] || getThematicImage(article['Tema'], article['Palavra-chave principal']);
+        const imageUrl = article['Imagem_Miniatura'] || getThematicImage(article['Tema'], article['Palavra-chave principal'], idx);
 
         if (exists) {
           return (
