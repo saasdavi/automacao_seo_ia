@@ -113,6 +113,20 @@ const upcomingArticles = allRows
   .slice(0, 9);
 
 const hero = articles[0];
+
+// Extrair categorias únicas
+const allTemas = [...new Set(allRows.map(row => row['Tema']).filter(t => t))];
+const sortedTemas = allTemas.sort();
+
+// URL params
+const url = new URL(Astro.request.url);
+const selectedCategory = url.searchParams.get('categoria') || null;
+
+// Filtrar artigos por categoria se selecionada
+const filteredArticles = selectedCategory
+  ? upcomingArticles.filter(a => a['Tema'] === selectedCategory)
+  : upcomingArticles;
+
 ---
 
 <Layout title="Início" description="Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental.">
@@ -286,6 +300,75 @@ const hero = articles[0];
       border-top: 1px solid #e0e8e0;
     }
 
+    .categories-menu {
+      background: #f8faf8;
+      padding: 30px 40px;
+      margin-bottom: 40px;
+      border-radius: 12px;
+      border: 1px solid #e0e8e0;
+    }
+
+    .categories-title {
+      color: #006400;
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin: 0 0 16px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 0.9rem;
+    }
+
+    .categories-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .category-btn {
+      display: inline-block;
+      padding: 10px 18px;
+      background: #fff;
+      border: 2px solid #d0e0d0;
+      border-radius: 20px;
+      text-decoration: none;
+      color: #006400;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .category-btn:hover {
+      background: #e8f3e8;
+      border-color: #006400;
+      transform: translateY(-2px);
+    }
+
+    .category-btn.active {
+      background: #006400;
+      color: #fff;
+      border-color: #006400;
+    }
+
+    .clear-filter {
+      display: inline-block;
+      padding: 10px 18px;
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 20px;
+      text-decoration: none;
+      color: #664d03;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .clear-filter:hover {
+      background: #ffe69c;
+    }
+
     @media (max-width: 768px) {
       .hero-body {
         padding: 50px 20px;
@@ -301,6 +384,11 @@ const hero = articles[0];
 
       .wrap {
         padding: 0 20px;
+      }
+
+      .categories-menu {
+        padding: 20px;
+        margin-bottom: 30px;
       }
 
       .section-title {
@@ -321,6 +409,11 @@ const hero = articles[0];
       .article-title {
         font-size: 1.1rem;
       }
+
+      .category-btn {
+        font-size: 0.85rem;
+        padding: 8px 14px;
+      }
     }
   </style>
 
@@ -339,11 +432,31 @@ const hero = articles[0];
   </div>
 
   <div class="wrap">
+    <!-- MENU DE CATEGORIAS -->
+    <div class="categories-menu">
+      <div class="categories-title">📂 Filtrar por categoria</div>
+      <div class="categories-list">
+        {selectedCategory && (
+          <a href="/" class="clear-filter">✕ Limpar filtro</a>
+        )}
+        {sortedTemas.map(tema => (
+          <a
+            href={`/?categoria=${encodeURIComponent(tema)}`}
+            class={`category-btn ${selectedCategory === tema ? 'active' : ''}`}
+          >
+            {tema}
+          </a>
+        ))}
+      </div>
+    </div>
+
     <!-- PRÓXIMAS PUBLICAÇÕES -->
-    <h2 class="section-title">Próximas publicações</h2>
+    <h2 class="section-title">
+      {selectedCategory ? `${selectedCategory}` : 'Próximas publicações'}
+    </h2>
 
     <div class="articles-grid">
-      {upcomingArticles.map((article, idx) => {
+      {filteredArticles.map((article, idx) => {
         const htmlFile = article['Artigo_Arquivo_HTML'];
         const filePath = htmlFile ? path.join(articlesDir, path.basename(htmlFile)) : '';
         const exists = htmlFile && htmlFile.toLowerCase() !== 'nan' && fs.existsSync(filePath);
