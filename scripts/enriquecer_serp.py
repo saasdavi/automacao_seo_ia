@@ -10,7 +10,9 @@ import time
 # ============================================
 # CONFIGURAÇÕES
 # ============================================
-SERPER_API_KEY = os.environ.get('SERPER_API_KEY') or os.environ.get('SERPAPI_KEY')
+# Coleta as duas chaves possiveis (o workflow injeta ambas; a primeira que autenticar vence)
+_SERPER_KEYS = [k for k in (os.environ.get('SERPER_API_KEY'), os.environ.get('SERPAPI_KEY')) if k]
+SERPER_API_KEY = _SERPER_KEYS[0] if _SERPER_KEYS else None
 MAX_ROWS_PER_RUN = int(os.environ.get('MAX_ROWS', '10'))
 INPUT_CSV = 'dados/calendario_blog_1_ano.csv'
 OUTPUT_CSV = 'dados/calendario_blog_1_ano.csv'
@@ -24,18 +26,19 @@ def buscar_serper(keyword, num=5):
     """Busca no Google via Serper.dev"""
     url = "https://google.serper.dev/search"
     payload = {"q": keyword, "gl": "br", "hl": "pt", "num": num}
-    headers = {
-        'X-API-KEY': SERPER_API_KEY,
-        'Content-Type': 'application/json'
-    }
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
-        if response.status_code == 200:
-            return response.json()
-        # Diagnóstico: mostra o motivo real da falha (ex.: 403 = chave inválida)
-        print(f"⚠️ HTTP {response.status_code} na Serper para '{keyword}': {response.text[:200]}")
-    except Exception as e:
-        print(f"Erro na API para {keyword}: {e}")
+    # Tenta cada chave configurada (resolve conflito SERPER_API_KEY x SERPAPI_KEY)
+    keys_to_try = _SERPER_KEYS or [None]
+    for key in keys_to_try:
+        try:
+            headers = {'X-API-KEY': key, 'Content-Type': 'application/json'}
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            # Diagnóstico: qual chave falhou e por quê (ex.: 403 = inválida/sem créditos)
+            sufixo = f" (chave ...{key[-4:]})" if key else ""
+            print(f"⚠️ HTTP {response.status_code} na Serper para '{keyword}'{sufixo}: {response.text[:150]}")
+        except Exception as e:
+            print(f"Erro na API para {keyword}: {e}")
     return None
 
 def analisar_pagina(url):

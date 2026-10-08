@@ -28,8 +28,9 @@ jobs:
 
     - name: Rodar script SERP
       env:
-        # Compatível com os dois nomes de secret configurados no repositório
-        SERPER_API_KEY: ${{ secrets.SERPER_API_KEY || secrets.SERPAPI_KEY }}
+        # Injeta as duas chaves; o script tenta cada uma até autenticar
+        SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+        SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
         MAX_ROWS: ${{ github.event.inputs.lotes }}
       run: python scripts/enriquecer_serp.py
 
