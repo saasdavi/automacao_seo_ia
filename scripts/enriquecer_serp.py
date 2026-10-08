@@ -27,7 +27,8 @@ def buscar_serper(keyword, num=5):
     url = "https://google.serper.dev/search"
     payload = {"q": keyword, "gl": "br", "hl": "pt", "num": num}
     # Tenta cada chave configurada (resolve conflito SERPER_API_KEY x SERPAPI_KEY)
-    keys_to_try = _SERPER_KEYS or [None]
+    # Deduplica: se os dois secrets tiverem a mesma chave, testa apenas uma vez
+    keys_to_try = list(dict.fromkeys(_SERPER_KEYS)) or [None]
     for key in keys_to_try:
         try:
             headers = {'X-API-KEY': key, 'Content-Type': 'application/json'}
