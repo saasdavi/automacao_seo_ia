@@ -41,7 +41,7 @@ MODELO_CEREBRAS = os.environ.get('CEREBRAS_MODEL', 'qwen-3-235b-a22b-instruct-25
 MODELOS_OPENROUTER = [
     m.strip() for m in os.environ.get(
         'OPENROUTER_MODELS',
-        'thinkingmachines/inkling:free,apodex/apodex-1.1-mini:free,thinkingmachines/inkling-small:free,nvidia/nemotron-3-super-120b-a12b:free',
+        'thinkingmachines/inkling:free,apodex/apodex-1.1-mini:free,nvidia/nemotron-3-super-120b-a12b:free,nvidia/nemotron-3.5-lightning:free,thinkingmachines/inkling-small:free,dots-studio/dots-3-note-preview:free,poolside/laguna-s-2.1:free,poolside/laguna-xs-2.1:free,cohere/north-mini-code:free,liquid/lfm-2.5-2.6b:free,google/gemma-4-31b-it:free',
     ).split(',') if m.strip()
 ]
 MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
