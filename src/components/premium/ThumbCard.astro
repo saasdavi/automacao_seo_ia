@@ -1,0 +1,40 @@
+---
+interface Props {
+  article: { titulo: string; tema: string; data: string; horario: string; slug: string | null; descricao: string; imagem: string };
+}
+const { article } = Astro.props;
+const upcoming = !article.slug;
+const Tag = upcoming ? 'article' : 'a';
+---
+
+<Tag
+  href={upcoming ? undefined : article.slug}
+  class:list={[
+    'group flex h-full flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-brand-100 transition duration-300',
+    upcoming ? 'opacity-70' : 'hover:-translate-y-1 hover:shadow-lift',
+  ]}
+>
+  <div class="thumb-zoom relative aspect-[16/10] overflow-hidden bg-brand-100">
+    <img src={article.imagem} alt={article.titulo} loading="lazy" class="size-full object-cover" />
+    {upcoming && (
+      <span class="absolute inset-0 grid place-items-center bg-ink-900/35 text-xs font-bold uppercase tracking-widest text-white">
+        Em breve
+      </span>
+    )}
+  </div>
+  <div class="flex flex-1 flex-col p-6">
+    <div class="flex items-center justify-between gap-3 text-xs">
+      <span class="rounded-full bg-brand-50 px-3 py-1 font-semibold text-brand-600">{article.tema}</span>
+      <span class="text-ink-500 whitespace-nowrap">{article.data} · {article.horario}</span>
+    </div>
+    <h3 class="mt-4 text-xl leading-snug font-semibold text-ink-900 group-hover:text-brand-600 transition">
+      {article.titulo}
+    </h3>
+    <p class="mt-3 line-clamp-3 text-sm leading-relaxed text-ink-500">
+      {upcoming ? 'Em produção — entra no ar automaticamente nesta data.' : article.descricao}
+    </p>
+    {!upcoming && (
+      <span class="mt-auto pt-5 text-sm font-semibold text-brand-600">Ler mais →</span>
+    )}
+  </div>
+</Tag>
