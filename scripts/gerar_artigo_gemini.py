@@ -8,7 +8,7 @@ como GERADO. A home publica o artigo sozinha, porque ela lista os HTMLs que exis
 
 Variáveis de ambiente:
     GEMINI_API_KEY   chave da API do Gemini (obrigatória)
-    GEMINI_MODEL     modelo (padrão: gemini-2.5-flash)
+    GEMINI_MODEL     modelo (padrão: gemini-3.8-flash)
     MAX_ARTIGOS      quantos artigos gerar nesta execução (padrão: 1)
 """
 
@@ -21,7 +21,7 @@ import requests
 
 CSV_PATH = os.path.join('dados', 'calendario_blog_1_ano.csv')
 HTML_DIR = os.path.join('dados', 'saida', 'html')
-MODELO = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+MODELO = os.environ.get('GEMINI_MODEL', 'gemini-3.8-flash')
 MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
 API = 'https://generativelanguage.googleapis.com/v1beta'
 
