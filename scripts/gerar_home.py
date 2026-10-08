@@ -5,22 +5,45 @@ calendario_blog_1_ano.csv: banner grande com o artigo em destaque + grade de
 quadros com os próximos artigos, cada um com data marcada (dd/mm/aa) e horário.
 Regra: quadro clicável apenas se o HTML do artigo existir; caso contrário,
 aparece como "em breve" (sem link quebrado).
+
+Versão SEM PANDAS - compatível com Vercel
 """
 import os
 import re
-import unicodedata
-import pandas as pd
+import csv
+from datetime import datetime
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSV = os.path.join(BASE, 'dados', 'calendario_blog_1_ano.csv')
 OUT = os.path.join(BASE, 'dados', 'saida', 'html', 'index.html')
 
+
+def ler_csv():
+    """Lê CSV e retorna lista de dicts."""
+    try:
+        with open(CSV, 'r', encoding='utf-8-sig') as f:
+            reader = csv.DictReader(f)
+            return list(reader)
+    except Exception as e:
+        print(f"❌ Erro ao ler CSV: {e}")
+        return []
+
+
 def slug_html(row):
-    """Caminho relativo do HTML do artigo (coluna Artigo_Arquivo_HTML ou padrão)."""
+    """Caminho relativo do HTML do artigo."""
     v = str(row.get('Artigo_Arquivo_HTML', '') or '').strip()
     if v and v.lower() != 'nan':
         return os.path.basename(v)
     return None
+
+
+def parsear_data(data_str):
+    """Converte dd/mm/yyyy para timestamp para ordenação."""
+    try:
+        return datetime.strptime(data_str.strip(), '%d/%m/%Y')
+    except:
+        return datetime.now()
+
 
 def titulo_do_artigo(row):
     """Tenta extrair o <title> do HTML gerado; senão capitaliza a keyword."""
@@ -35,10 +58,11 @@ def titulo_do_artigo(row):
                         t = re.sub(r'\s*[-|–]\s*Mente Leve.*$', '', m.group(1), flags=re.I).strip()
                         if t:
                             return t
-            except Exception:
+            except:
                 pass
-    kw = str(row['Palavra-chave principal'])
+    kw = str(row.get('Palavra-chave principal', 'Artigo'))
     return kw.capitalize()
+
 
 def resumo_do_artigo(row):
     """Primeira frase do parágrafo lead do HTML, se existir."""
@@ -49,23 +73,32 @@ def resumo_do_artigo(row):
             try:
                 with open(path, encoding='utf-8') as fh:
                     html = fh.read()
-                # primeiro <p> dentro do <article>
                 corpo = html.split('<article>')[-1]
                 m = re.search(r'<p[^>]*>(.*?)</p>', corpo, re.S)
                 if m:
                     txt = re.sub(r'<[^>]+>', '', m.group(1))
                     txt = re.sub(r'\s+', ' ', txt).strip()
                     return (txt[:160] + '…') if len(txt) > 160 else txt
-            except Exception:
+            except:
                 pass
-    return f"Artigo informativo sobre {str(row['Palavra-chave principal'])}. Tema: {row['Tema']}."
+    return f"Artigo informativo sobre {str(row.get('Palavra-chave principal', 'tema'))}. Tema: {row.get('Tema', 'Bem-estar')}."
+
 
 def main():
-    df = pd.read_csv(CSV)
-    df['Data_dt'] = pd.to_datetime(df['Data'], format='%d/%m/%Y')
-    publicados = df[df.apply(lambda r: bool(slug_html(r)) and os.path.exists(
-        os.path.join(BASE, 'dados', 'saida', 'html', slug_html(r))), axis=1)]
-    destaques = df.sort_values(['Data_dt', 'Horário']).head(9)  # 3 primeiros dias
+    rows = ler_csv()
+    if not rows:
+        print("❌ Nenhuma linha no CSV")
+        return
+
+    # Ordenar por data e horário
+    rows.sort(key=lambda r: (parsear_data(r.get('Data', '01/01/2026')), r.get('Horário', '00:00')))
+
+    # Contar artigos publicados
+    publicados = sum(1 for r in rows if slug_html(r) and os.path.exists(
+        os.path.join(BASE, 'dados', 'saida', 'html', slug_html(r))))
+
+    # Pegar os 9 primeiros (destaques)
+    destaques = rows[:9]
 
     nav = '''<nav class="site-nav" aria-label="Menu principal">
     <a href="/">Início</a><a href="/sobre.html">Sobre</a><a href="/contato.html">Contato</a><a href="/politica-editorial.html">Política editorial</a><a href="/aviso-medico.html">Aviso médico</a><a href="/divulgacao-afiliados.html">Divulgação de afiliados</a><a href="/privacidade.html">Privacidade</a><a href="/termos-de-uso.html">Termos de uso</a>
@@ -73,15 +106,22 @@ def main():
 
     hero = ''
     cards = ''
-    for i, (_, row) in enumerate(destaques.iterrows()):
+
+    for i, row in enumerate(destaques):
         f = slug_html(row)
         existe = f and os.path.exists(os.path.join(BASE, 'dados', 'saida', 'html', f))
-        data_fmt = row['Data_dt'].strftime('%d/%m/%y')
-        tema = row['Tema']
-        hora = row['Horário']
+
+        try:
+            data_dt = parsear_data(row.get('Data', '01/01/2026'))
+            data_fmt = data_dt.strftime('%d/%m/%y')
+        except:
+            data_fmt = row.get('Data', 'data')
+
+        tema = row.get('Tema', 'Geral')
+        hora = row.get('Horário', '09h')
         titulo = titulo_do_artigo(row)
+
         if i == 0 and existe:
-            # BANNER GRANDE — artigo em destaque
             hero = f'''<a class="hero" href="/{f}">
   <div class="hero-body">
     <span class="badge">★ Em destaque · {tema}</span>
@@ -103,7 +143,6 @@ def main():
   <p class="soon">Em produção — entra no ar automaticamente nesta data.</p>
 </div>'''
 
-    n_pub = len(publicados)
     html = f'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -154,7 +193,7 @@ h2.section {{ color:#006400; font-size:1.5rem; border-bottom:2px solid #e0e8e0; 
 <div class="grid">
 {cards}
 </div>
-<p style="color:#555;font-size:.95rem;margin-top:26px;">📊 {n_pub} artigo(s) já publicado(s) de 1.095 programados no calendário 08/10/2026 → 07/10/2027. Este conteúdo é informativo e não substitui a orientação de um profissional de saúde.</p>
+<p style="color:#555;font-size:.95rem;margin-top:26px;">📊 {publicados} artigo(s) já publicado(s). Este conteúdo é informativo e não substitui a orientação de um profissional de saúde.</p>
 </div>
 <footer class="site-footer">
   <div class="footer-links">
@@ -170,7 +209,8 @@ h2.section {{ color:#006400; font-size:1.5rem; border-bottom:2px solid #e0e8e0; 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, 'w', encoding='utf-8') as fh:
         fh.write(html)
-    print(f"✅ Home gerada: {OUT} | destaque={'sim' if hero else 'nenhum'} | quadros={destaques.shape[0]-1} | publicados={n_pub}")
+    print(f"✅ Home gerada: {OUT} | destaque={'sim' if hero else 'nenhum'} | cards={len(destaques)-1} | publicados={publicados}")
+
 
 if __name__ == '__main__':
     main()
