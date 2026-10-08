@@ -89,7 +89,8 @@ def com_tentativas(prompt, chave, modelo, maximo=5):
         try:
             return chamar(prompt, chave, modelo)
         except (RuntimeError, requests.RequestException) as e:
-            if not eh_temporario(e) or tentativa == maximo:
+            # 429 = cota do dia esgotada: repetir não resolve, só gasta cota
+            if 'HTTP 429' in str(e) or not eh_temporario(e) or tentativa == maximo:
                 raise
             espera = min(2 ** tentativa, 64) + random.uniform(0, 2)
             print(f'⏳ Modelo ocupado (tentativa {tentativa}/{maximo}). Nova tentativa em {espera:.0f}s...')

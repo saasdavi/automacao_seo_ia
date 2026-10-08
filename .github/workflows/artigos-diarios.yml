@@ -39,7 +39,8 @@ jobs:
     - name: Gerar artigo com IA
       env:
         # 'openrouter' usa modelos gratuitos (lista em OPENROUTER_MODELS no script)
-        LLM_PROVIDER: openrouter
+        LLM_PROVIDER: gemini
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         MAX_ARTIGOS: '1'
       run: python scripts/gerar_artigo_gemini.py
