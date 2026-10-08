@@ -86,7 +86,10 @@ export function loadArticles() {
       time: parseDate(row['Data']).getTime(),
       slug: hasFile ? `/${file}` : null,
       descricao: hasFile ? metaDescription(file) : '',
-      imagem: thumbFor(row['Tema']),
+      // Miniatura própria por artigo (coluna Imagem_Miniatura); sem ela, usa a imagem do tema
+      imagem: row['Imagem_Miniatura'] && row['Imagem_Miniatura'].startsWith('http')
+        ? row['Imagem_Miniatura']
+        : thumbFor(row['Tema']),
     };
   });
 
