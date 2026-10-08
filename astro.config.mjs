@@ -24,6 +24,10 @@ const copiarArtigos = {
 export default defineConfig({
   integrations: [copiarArtigos],
   output: 'static',
+  // Link antigo do modelo premium passa a cair na home
+  redirects: {
+    '/modelo-premium': '/',
+  },
   outDir: './dist',
   publicDir: './public',
   vite: {
