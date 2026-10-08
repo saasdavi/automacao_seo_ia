@@ -162,6 +162,54 @@ def validar_artigo(html):
     return problemas
 
 
+LIMITE_FONTES_CHECADAS = 10
+STATUS_FONTE_QUEBRADA = (404, 410)
+
+
+def urls_das_fontes(html):
+    """URLs da seção 'Fontes' e DOIs citados, sem repetição e até LIMITE_FONTES_CHECADAS."""
+    m = re.search(r'<h2[^>]*>\s*Fontes\s*</h2>(.*)', html, flags=re.S | re.I)
+    trecho = m.group(1) if m else html
+    urls = re.findall(r'href="(https?://[^"]+)"', trecho, flags=re.I)
+    # DOI só no texto: os que já estão dentro de um href são pegos acima
+    texto = re.sub(r'href="[^"]*"', ' ', trecho)
+    urls += [f'https://doi.org/{d.rstrip(".,;)")}' for d in re.findall(r'\b(10\.\d{4,9}/[^\s"<>]+)', texto)]
+    vistas = []
+    for u in urls:
+        u = u.rstrip('.,;)')
+        if u not in vistas:
+            vistas.append(u)
+    return vistas[:LIMITE_FONTES_CHECADAS]
+
+
+def verificar_url(url):
+    """Devolve (situação, detalhe). 'quebrada' = 404/410 ou domínio que não existe.
+    'inconclusiva' = bloqueio, 5xx ou tempo esgotado: não reprova, porque muitos sites
+    bloqueiam robôs e isso não prova que a fonte é inválida."""
+    try:
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (compatible; verificador-fontes)'},
+                         timeout=10, allow_redirects=True)
+    except requests.ConnectionError:
+        return 'quebrada', 'domínio não responde'
+    except requests.RequestException:
+        return 'inconclusiva', 'tempo esgotado'
+    if r.status_code == 200:
+        return 'ok', ''
+    if r.status_code in STATUS_FONTE_QUEBRADA:
+        return 'quebrada', f'HTTP {r.status_code}'
+    return 'inconclusiva', f'HTTP {r.status_code}'
+
+
+def checar_fontes(html):
+    """Reprova só fonte comprovadamente inexistente (ver verificar_url)."""
+    problemas = []
+    for u in urls_das_fontes(html):
+        situacao, detalhe = verificar_url(u)
+        if situacao == 'quebrada':
+            problemas.append(f'fonte não abriu ({detalhe}): {u}')
+    return problemas
+
+
 NOTA_MINIMA = 9.0
 
 
@@ -379,7 +427,7 @@ def gerar_validado(prompt, chave, modelos, rodadas):
             chave_pexels = os.environ.get('PEXELS_API_KEY', '').strip()
             if chave_pexels:
                 html = inserir_imagens_pexels(html, chave_pexels)
-            problemas = validar_artigo(html) + validar_imagens(html)
+            problemas = validar_artigo(html) + validar_imagens(html) + checar_fontes(html)
             nota = problema_nota(analise)
             if nota:
                 problemas.append(nota)
