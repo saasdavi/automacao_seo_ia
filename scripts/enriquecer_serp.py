@@ -1,4 +1,5 @@
 import os
+import sys
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
@@ -160,7 +161,7 @@ def main():
     
     if not SERPER_API_KEY:
         print("❌ SERPER_API_KEY não configurada. Abortando.")
-        return
+        sys.exit(1)
     
     df = pd.read_csv(INPUT_CSV)
     
@@ -195,6 +196,8 @@ def main():
     if fila.empty:
         print("✅ Nenhuma linha na fila. Processo concluído.")
         return
+
+    processados = 0
     
     print(f"📋 Processando {len(fila)} artigos...")
     
@@ -234,6 +237,7 @@ def main():
         
         # Atualiza o DataFrame
         df.at[idx, 'Status'] = 'SERP_OK'
+        processados += 1
         df.at[idx, 'SERP_Data_Consulta'] = datetime.now().strftime('%Y-%m-%d')
         df.at[idx, 'SERP_Dificuldade_Real'] = dificuldade
         df.at[idx, 'SERP_Top5_URLs_e_Tipos'] = " | ".join([f"{o.get('title','')} | {o.get('link','')}" for o in organicos])
@@ -320,7 +324,12 @@ def main():
         df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
         print(f"💾 Salvo progresso após {keyword}")
     
-    print(f"✅ Concluído! {len(fila)} artigos processados.")
+    if processados == 0:
+        # Sem isso a execução termina "verde" mesmo com a API recusando todas as buscas
+        print(f"❌ Nenhum dos {len(fila)} artigos foi pesquisado. Verifique a chave da Serper (HTTP 403 = inválida ou sem créditos).")
+        sys.exit(1)
+
+    print(f"✅ Concluído! {processados} de {len(fila)} artigos processados.")
 
 if __name__ == "__main__":
     main()
