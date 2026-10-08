@@ -5,7 +5,7 @@ import ThumbCard from '../components/premium/ThumbCard.astro';
 import PromoBanner from '../components/premium/PromoBanner.astro';
 import { loadArticles } from '../lib/articles.js';
 
-const { published, upcoming, temas } = loadArticles();
+const { published, upcoming, temas } = await loadArticles();
 
 // Destaque: artigo mais recente publicado; sem publicados, o próximo agendado
 const featured = published[0] ?? upcoming[0];
