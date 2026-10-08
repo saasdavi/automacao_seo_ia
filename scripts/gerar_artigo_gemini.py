@@ -138,6 +138,9 @@ def modelo_alternativo(chave, atual):
 
 def eh_temporario(e):
     """Erros que passam sozinhos: sobrecarga (503), limite de uso (429) e conexão/tempo esgotado."""
+    if isinstance(e, requests.exceptions.InvalidHeader):
+        # Cabeçalho inválido (ex.: chave com espaço) não passa sozinho: repetir não adianta
+        return False
     return isinstance(e, requests.RequestException) or 'HTTP 503' in str(e) or 'HTTP 429' in str(e)
 
 
@@ -266,7 +269,8 @@ def gerar_com_lista(prompt, chave, modelos):
 
 def main():
     nome_chave = {'cerebras': 'CEREBRAS_API_KEY', 'openrouter': 'OPENROUTER_API_KEY'}.get(PROVEDOR, 'GEMINI_API_KEY')
-    chave = os.environ.get(nome_chave)
+    # strip(): secret colado com espaço ou quebra de linha quebra o cabeçalho HTTP
+    chave = (os.environ.get(nome_chave) or '').strip()
     if not chave:
         print(f'❌ {nome_chave} não configurada. Abortando.')
         return 1
