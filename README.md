@@ -6,7 +6,7 @@ O workflow **Artigos diários (SERP + Gemini)** roda às **09h, 12h e 20h** (hor
 
 1. **Pesquisa SERP** (SerpAPI) do próximo tema da fila no calendário
 2. **Briefing** com concorrentes, H2s, PAA e long tails, salvo em `dados/saida/md/`
-3. **Gemini** (API) gera o artigo HTML a partir do briefing e do prompt mestre
+3. **OpenRouter** (modelos gratuitos) gera o artigo HTML a partir do briefing e do prompt mestre. A análise de pontuação interna é guardada em `dados/saida/md/` e não vai para o site
 4. **Artigo** salvo em `dados/saida/html/` e publicado automaticamente na home
 5. **Você** revisa o artigo no site
 
@@ -46,6 +46,6 @@ Settings → Secrets and variables → Actions:
 | C - Gemini (auto) | GEMINI_Prompt_Arquivo, Artigo_Arquivo_HTML, Status (`GERADO`), Data Publicação |
 
 ## Créditos Gratuitos
-- SerpAPI: 250 buscas/mês grátis (3 artigos por dia usam cerca de 90 por mês)
+- SerpAPI: 250 buscas/mês grátis. O fluxo usa 5 por dia (cerca de 155 por mês), com 2 nas 09h, 2 nas 12h e 1 nas 20h
 - GitHub Actions: 2.000 minutos/mês grátis
 - Gemini API: camada gratuita
