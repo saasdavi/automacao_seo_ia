@@ -12,7 +12,7 @@
 1. Acesse: https://openrouter.ai/settings/keys
 2. Crie uma chave e defina um limite de gastos na conta
 3. Nome do secret: `OPENROUTER_API_KEY`
-4. Modelos usados (gratuitos): `nvidia/nemotron-3-super-120b-a12b:free` e `google/gemma-4-31b-it:free`
+4. Modelos usados (gratuitos): `thinkingmachines/inkling:free`, `apodex/apodex-1.1-mini:free`, `thinkingmachines/inkling-small:free` e `nvidia/nemotron-3-super-120b-a12b:free`
 
 ## Pexels API (fotos das miniaturas)
 1. Acesse: https://www.pexels.com/api/
