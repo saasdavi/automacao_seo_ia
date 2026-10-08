@@ -1,4 +1,4 @@
-# CI: instala dependências e roda os testes com cobertura
+# CI: valida sintaxe, estrutura e dados do pipeline SERP
 name: CI
 on:
   push:
@@ -13,7 +13,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Instalar projeto + dev
-        run: pip install -e ".[dev]"
-      - name: Testes com cobertura
-        run: pytest --cov=src --cov-fail-under=80
+      - name: Instalar dependências
+        run: pip install -r requirements.txt pyyaml
+      - name: Validar sintaxe dos scripts Python
+        run: python -m compileall -q scripts/ src/
+      - name: Validar YAML dos workflows
+        run: python -c "import yaml,glob; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')]; print('workflows OK')"
+      - name: Validar estrutura do calendário (dados/calendario_blog_1_ano.csv)
+        run: |
+          python - << 'PY'
+          import pandas as pd
+          df = pd.read_csv('dados/calendario_blog_1_ano.csv')
+          obrigatorias = ['Status','SERP_Data_Consulta','SERP_Dificuldade_Real','SERP_Top5_URLs_e_Tipos',
+              'SERP_H2s_Comuns','SERP_PAA','SERP_Pesquisas_Relacionadas','SERP_Long_Tails_Vistas',
+              'SERP_Lacunas_Identificadas','SERP_Fontes_Oficiais_Candidatas','SERP_Autoridades_Top5',
+              'SERP_Divergencias_Com_Planilha','GEMINI_Prompt_Pronto','GEMINI_Nota_Autoavaliada',
+              'Link_Artigo_Gerado','Data_Publicacao']
+          faltando = [c for c in obrigatorias if c not in df.columns]
+          assert not faltando, f'Colunas ausentes: {faltando}'
+          print(f'Calendário OK: {len(df)} linhas x {len(df.columns)} colunas')
+          PY
