@@ -10,10 +10,12 @@ import time
 # ============================================
 # CONFIGURAÇÕES
 # ============================================
-SERPER_API_KEY = os.environ.get('SERPER_API_KEY')
+SERPER_API_KEY = os.environ.get('SERPER_API_KEY') or os.environ.get('SERPAPI_KEY')
 MAX_ROWS_PER_RUN = int(os.environ.get('MAX_ROWS', '10'))
 INPUT_CSV = 'dados/calendario_blog_1_ano.csv'
 OUTPUT_CSV = 'dados/calendario_blog_1_ano.csv'
+# Pasta onde ficam os arquivos Markdown por artigo (a planilha vira apenas índice)
+SAIDA_MD_DIR = 'dados/saida/md'
 
 # ============================================
 # FUNÇÕES SERP
@@ -164,11 +166,16 @@ def main():
         'SERP_H2s_Comuns', 'SERP_PAA', 'SERP_Pesquisas_Relacionadas', 'SERP_Long_Tails_Vistas',
         'SERP_Lacunas_Identificadas', 'SERP_Fontes_Oficiais_Candidatas', 'SERP_Autoridades_Top5',
         'SERP_Divergencias_Com_Planilha', 'GEMINI_Prompt_Pronto', 'GEMINI_Nota_Autoavaliada',
-        'Link_Artigo_Gerado', 'Data_Publicacao'
+        'Link_Artigo_Gerado', 'Data_Publicacao',
+        # Novas colunas de referência (a planilha vira índice; os dados vão para arquivos .md)
+        'SERP_Arquivo_MD', 'GEMINI_Prompt_Arquivo', 'Artigo_Arquivo_HTML'
     ]
     for col in novas_colunas:
         if col not in df.columns:
             df[col] = ''
+
+    # Garante a pasta de saída dos arquivos Markdown
+    os.makedirs(SAIDA_MD_DIR, exist_ok=True)
     
     # Filtra apenas linhas na fila
     if 'Status' not in df.columns:
@@ -200,8 +207,10 @@ def main():
         # Extrai H2s de todos os concorrentes
         todos_h2s = []
         concorrentes_str = []
+        analises = []  # guarda a análise de cada página para gerar o briefing .md
         for i, item in enumerate(organicos):
             analise = analisar_pagina(item['link'])
+            analises.append(analise)
             todos_h2s.extend(analise['h2s'].split('; '))
             concorrentes_str.append(f"{i+1}. {analise['titulo']} | {analise['url']} | {analise['tipo']} | {analise['palavras']} palavras | H2s: {analise['h2s']}")
             time.sleep(0.5)  # Respeitar rate limit
@@ -225,7 +234,20 @@ def main():
         df.at[idx, 'SERP_Lacunas_Identificadas'] = "; ".join(lacunas)
         df.at[idx, 'SERP_Fontes_Oficiais_Candidatas'] = "; ".join(fontes)
         df.at[idx, 'SERP_Autoridades_Top5'] = "; ".join(autoridades)
-        df.at[idx, 'SERP_Divergencias_Com_Planilha'] = ''
+        # Divergências automáticas: Ads vs SERP real + volume vs intenção da SERP
+        divergencias = ""
+        ads = str(row.get('Concorrência', '')).strip().lower()
+        mapa_ads = {'baixo': 'fácil', 'low': 'fácil', 'médio': 'média', 'medio': 'média', 'medium': 'média', 'alto': 'difícil', 'high': 'difícil'}
+        esperada = mapa_ads.get(ads, '')
+        if esperada and esperada != dificuldade.lower():
+            divergencias += f"A planilha diz concorrência Ads '{row['Concorrência']}' mas a SERP real indica '{dificuldade}'. "
+        try:
+            vol_num = float(str(row.get('Volume (dado)', '0')).replace('.', '').replace(',', ''))
+        except ValueError:
+            vol_num = 0
+        if vol_num >= 5000 and dificuldade == "Difícil":
+            divergencias += "Cabeça de termo com alto volume disputado por autoridades — priorizar E-E-A-T forte. "
+        df.at[idx, 'SERP_Divergencias_Com_Planilha'] = divergencias.strip()
         
         # Monta o Prompt para o Gemini
         dados_serp_dict = {
@@ -241,6 +263,48 @@ def main():
             'h2s_formatado': "\n".join([f"- {h}" for h in list(set(todos_h2s))[:8]])
         }
         df.at[idx, 'GEMINI_Prompt_Pronto'] = montar_prompt_gemini(row, dados_serp_dict)
+
+        # === Gera os arquivos Markdown por artigo (planilha vira índice com referências) ===
+        import unicodedata
+        def _slug(kw):
+            s = unicodedata.normalize('NFKD', str(kw)).encode('ascii', 'ignore').decode()
+            return re.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')[:60] or 'sem-kw'
+        hora = re.sub(r'\D', '', str(row.get('Horário', ''))).zfill(2)
+        base_nome = f"art-{int(row['Dia']):03d}-{hora}h-{_slug(keyword)}"
+
+        # 1) BRIEFING SERP — dados da pesquisa no formato do prompt de auditoria
+        serp_md = [f"# Briefing SERP — {keyword}", ""]
+        serp_md.append(f"**Consulta:** {datetime.now().strftime('%Y-%m-%d')} | Google Brasil (gl=br, hl=pt) | via Serper.dev")
+        serp_md.append(f"**Palavra-chave:** {keyword} | **Tema:** {row['Tema']} | **Volume (planilha):** {row['Volume (dado)']} | **Concorrência Ads (planilha):** {row['Concorrência']}")
+        if row.get('Variações (sinônimos)'):
+            serp_md.append(f"**Variações:** {row['Variações (sinônimos)']}")
+        serp_md += ["", "## CONCORRENTES (Top 5 orgânico)", "posição | título | URL direta | tipo | palavras aproximadas | H2 principais | lida de verdade?", "---|---|---|---|---|---|---"]
+        for i, item in enumerate(organicos):
+            analise = analises[i]
+            serp_md.append(f"{i+1} | {analise['titulo']} | {analise['url']} | {analise['tipo']} | ~{analise['palavras']} | {analise['h2s']} | {'sim' if analise['tipo'] != 'erro' else 'não verifiquei'}")
+        serp_md += ["", "## PERGUNTAS DO GOOGLE (PAA)"] + ([f"- {p}" for p in paa] or ["(nenhuma retornada)"])
+        serp_md += ["", "## PESQUISAS RELACIONADAS"] + ([f"- {r}" for r in relacionadas] or ["(nenhuma retornada)"])
+        serp_md += ["", "## LONG TAILS VISTAS (termo | fonte | na planilha? volume desconhecido)"] + [f"- {lt['termo']} | {lt['fonte']} | volume desconhecido" for lt in long_tails[:30]]
+        serp_md += ["", "## LACUNAS (o que o topo não respondeu bem)"] + ([f"- {l}" for l in lacunas] or ["(nenhuma identificada)"])
+        serp_md += ["", f"## DIFICULDADE REAL: {dificuldade} (autoridades no top 5: {len(autoridades) if autoridades else sum(1 for it in organicos if any(a in it.get('link','') for a in ['gov.br','wikipedia.org','nih.gov','who.int','hospital','clinica']))})"]
+        serp_md += ["", "## FONTES OFICIAIS CANDIDATAS (até 5)"] + ([f"- {u} | aberta de verdade? sim" for u in fontes] or ["(nenhuma)"])
+        serp_md += ["", "## AUTORIDADES NO TOP 5"] + ([f"- {a}" for a in autoridades] or ["(nenhuma)"])
+        serp_md += ["", "## DIVERGÊNCIAS COM A PLANILHA", divergencias if divergencias else "(nenhuma detectada automaticamente)"]
+        caminho_serp = os.path.join(SAIDA_MD_DIR, f"{base_nome}.serp.md")
+        with open(caminho_serp, 'w', encoding='utf-8') as f:
+            f.write("\n".join(serp_md))
+
+        # 2) PROMPT PRONTO PARA O GEMINI (briefing + Prompt Mestre embutidos num único .md)
+        prompt_md = "# Prompt para Gemini — gerar artigo\n\n" + df.at[idx, 'GEMINI_Prompt_Pronto']
+        caminho_prompt = os.path.join(SAIDA_MD_DIR, f"{base_nome}.prompt.md")
+        with open(caminho_prompt, 'w', encoding='utf-8') as f:
+            f.write(prompt_md)
+
+        # 3) Atualiza as colunas de referência do índice
+        df.at[idx, 'SERP_Arquivo_MD'] = caminho_serp
+        df.at[idx, 'GEMINI_Prompt_Arquivo'] = caminho_prompt
+        # Link curto e limpo para uso via API/copy-paste (referência ao arquivo, não o texto inteiro)
+        df.at[idx, 'GEMINI_Prompt_Pronto'] = caminho_prompt
         
         # Salva progresso a cada linha
         df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
