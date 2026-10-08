@@ -14,8 +14,10 @@ Variáveis de ambiente:
 
 import csv
 import os
+import random
 import re
 import sys
+import time
 
 import requests
 
@@ -37,6 +39,21 @@ def modelo_disponivel(chave):
     ]
     # Nomes mais altos (versão mais nova) primeiro
     return sorted(candidatos, reverse=True)[0] if candidatos else None
+
+
+def com_tentativas(prompt, chave, modelo, maximo=5):
+    """Repete quando o Gemini está sobrecarregado (503) ou com limite de uso (429).
+    Espera cada vez mais (2, 4, 8, 16... segundos) com uma pausa aleatória, para não insistir no mesmo instante."""
+    for tentativa in range(1, maximo + 1):
+        try:
+            return gerar(prompt, chave, modelo)
+        except RuntimeError as e:
+            temporario = 'HTTP 503' in str(e) or 'HTTP 429' in str(e)
+            if not temporario or tentativa == maximo:
+                raise
+            espera = min(2 ** tentativa, 64) + random.uniform(0, 2)
+            print(f'⏳ Modelo ocupado (tentativa {tentativa}/{maximo}). Nova tentativa em {espera:.0f}s...')
+            time.sleep(espera)
 
 
 def gerar(prompt, chave, modelo):
@@ -91,7 +108,7 @@ def main():
             with open(prompt_path, encoding='utf-8') as f:
                 prompt = f.read()
             try:
-                html = gerar(prompt, chave, modelo)
+                html = com_tentativas(prompt, chave, modelo)
             except RuntimeError as e:
                 # 404 = modelo aposentado: troca pelo flash mais novo disponível e tenta de novo
                 if 'HTTP 404' not in str(e):
@@ -101,7 +118,7 @@ def main():
                     raise
                 print(f'↪️ {modelo} indisponível; usando {novo}')
                 modelo = novo
-                html = gerar(prompt, chave, modelo)
+                html = com_tentativas(prompt, chave, modelo)
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1
