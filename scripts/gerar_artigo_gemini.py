@@ -41,13 +41,14 @@ MODELO_CEREBRAS = os.environ.get('CEREBRAS_MODEL', 'qwen-3-235b-a22b-instruct-25
 MODELOS_OPENROUTER = [
     m.strip() for m in os.environ.get(
         'OPENROUTER_MODELS',
-        'nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-31b-it:free',
+        'apodex/apodex-1.1-mini:free,nvidia/nemotron-3-super-120b-a12b:free,nvidia/nemotron-3.5-lightning:free,thinkingmachines/inkling-small:free,dots-studio/dots-3-note-preview:free,poolside/laguna-s-2.1:free,poolside/laguna-xs-2.1:free,cohere/north-mini-code:free,liquid/lfm-2.5-2.6b:free,google/gemma-4-31b-it:free',
     ).split(',') if m.strip()
 ]
 MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
 API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
 URL_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
+URL_PEXELS = 'https://api.pexels.com/v1/search'
 
 
 def limpar(texto):
@@ -61,6 +62,70 @@ def limpar(texto):
 def data_brasilia():
     """Data e hora atuais em Brasília (UTC-3), para datePublished do artigo."""
     return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3))).isoformat(timespec='seconds')
+
+
+PADRAO_IMG_PEXELS = re.compile(r'<img\b[^>]*\bdata-pexels="([^"]+)"[^>]*>', re.I)
+
+
+def buscar_foto_pexels(termo, chave_pexels, usadas):
+    """Foto da Pexels para o termo, sem repetir foto já usada no artigo."""
+    r = requests.get(
+        URL_PEXELS,
+        headers={'Authorization': chave_pexels},
+        params={'query': termo, 'per_page': 10, 'orientation': 'landscape'},
+        timeout=30,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'Pexels HTTP {r.status_code}')
+    for foto in r.json().get('photos', []):
+        if foto['id'] not in usadas:
+            return foto
+    return None
+
+
+def inserir_imagens_pexels(html, chave_pexels):
+    """Troca cada <img data-pexels> pela foto real, com alt do SEO e crédito do fotógrafo.
+
+    A chave fica só no servidor: o HTML publicado não contém chave nem script.
+    Sem foto para o termo, a imagem é removida (o artigo continua válido).
+    """
+    usadas = set()
+
+    def trocar(m):
+        tag = m.group(0)
+        alt_m = re.search(r'\balt="([^"]*)"', tag)
+        alt = html_lib.escape(alt_m.group(1) if alt_m else '', quote=True)
+        foto = buscar_foto_pexels(m.group(1), chave_pexels, usadas)
+        if not foto:
+            return ''
+        usadas.add(foto['id'])
+        return (
+            f'<figure><img src="{foto["src"]["large"]}" alt="{alt}" '
+            f'width="{foto["width"]}" height="{foto["height"]}" loading="lazy">'
+            f'<figcaption>Foto por <a href="{foto["photographer_url"]}" target="_blank" rel="noopener">'
+            f'{html_lib.escape(foto["photographer"])}</a> no '
+            f'<a href="{foto["url"]}" target="_blank" rel="noopener">Pexels</a></figcaption></figure>'
+        )
+
+    return PADRAO_IMG_PEXELS.sub(trocar, html)
+
+
+def validar_imagens(html):
+    """Regras de SEO e acessibilidade para as imagens. Lista vazia = aprovado."""
+    problemas = []
+    if 'data-pexels' in html:
+        problemas.append('imagem sem foto da Pexels')
+    alts = re.findall(r'<img\b[^>]*\balt="([^"]*)"', html, flags=re.I)
+    if len(alts) < 1:
+        problemas.append('sem imagem no artigo')
+    for alt in alts:
+        if not 50 <= len(alt) <= 125:
+            problemas.append(f'alt com {len(alt)} caracteres (50 a 125)')
+        if alt.lower().startswith(('imagem de', 'foto de')):
+            problemas.append('alt começa com "imagem de" ou "foto de"')
+    if len(set(alts)) != len(alts):
+        problemas.append('alt repetido entre imagens')
+    return problemas
 
 
 def validar_artigo(html):
@@ -94,6 +159,20 @@ def validar_artigo(html):
     if paragrafos_longos > 2:
         problemas.append(f'{paragrafos_longos} parágrafos com mais de 50 palavras')
     return problemas
+
+
+NOTA_MINIMA = 9.0
+
+
+def problema_nota(analise):
+    """Lê a nota final da análise interna (ex.: 'Nota final: 9,2 / 10'). Sem nota ou abaixo de 9 = reprovado."""
+    m = re.search(r'Nota final[^0-9]{0,15}(\d+(?:[.,]\d+)?)', analise or '', flags=re.I)
+    if not m:
+        return 'sem nota final na análise'
+    nota = float(m.group(1).replace(',', '.'))
+    if nota < NOTA_MINIMA:
+        return f'nota {nota:.1f} (mínimo {NOTA_MINIMA:.1f})'
+    return None
 
 
 def separar_html(texto):
@@ -138,6 +217,9 @@ def modelo_alternativo(chave, atual):
 
 def eh_temporario(e):
     """Erros que passam sozinhos: sobrecarga (503), limite de uso (429) e conexão/tempo esgotado."""
+    if isinstance(e, requests.exceptions.InvalidHeader):
+        # Cabeçalho inválido (ex.: chave com espaço) não passa sozinho: repetir não adianta
+        return False
     return isinstance(e, requests.RequestException) or 'HTTP 503' in str(e) or 'HTTP 429' in str(e)
 
 
@@ -190,6 +272,14 @@ def gerar_cerebras(prompt, chave, modelo):
     return limpar(r.json()['choices'][0]['message']['content'])
 
 
+class LimiteOpenRouter(RuntimeError):
+    """429 do OpenRouter: limite de uso temporário. Carrega o tempo de espera sugerido."""
+
+    def __init__(self, mensagem, espera):
+        super().__init__(mensagem)
+        self.espera = espera
+
+
 def gerar_openrouter(prompt, chave, modelo):
     r = requests.post(
         URL_OPENROUTER,
@@ -197,34 +287,66 @@ def gerar_openrouter(prompt, chave, modelo):
         json={'model': modelo, 'messages': [{'role': 'user', 'content': prompt}], 'max_tokens': 8000},
         timeout=120,
     )
+    if r.status_code == 429:
+        retry = r.headers.get('Retry-After', '')
+        espera = int(retry) if retry.isdigit() else 300
+        raise LimiteOpenRouter(f'HTTP 429: {r.text[:200]}', espera)
     if r.status_code != 200:
         raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
-    return limpar(r.json()['choices'][0]['message']['content'])
+    conteudo = r.json()['choices'][0]['message'].get('content')
+    if not conteudo:
+        # Modelo gratuito às vezes devolve vazio: vira reprovação e passa ao próximo modelo
+        raise RuntimeError('resposta vazia da IA')
+    return limpar(conteudo)
 
 
 def gerar_com_lista(prompt, chave, modelos):
     """Tenta cada modelo na ordem até um artigo passar na validação.
 
-    Passa para o próximo modelo em erro temporário ou quando o artigo é reprovado.
-    Devolve (html, análise).
+    Em limite de uso (429) espera o tempo indicado pelo OpenRouter e tenta o mesmo
+    modelo de novo, no máximo 2 vezes. Passa ao próximo modelo em erro temporário,
+    resposta vazia ou artigo reprovado. Devolve (html, análise).
     """
     ultimo_erro = None
     for modelo in modelos:
-        try:
-            texto = com_tentativas(prompt, chave, modelo)
-        except (RuntimeError, requests.RequestException) as e:
-            if not eh_temporario(e):
-                raise
-            print(f'↪️ {modelo} indisponível agora; tentando o próximo')
-            ultimo_erro = e
+        esperas = 0
+        while True:
+            try:
+                texto = com_tentativas(prompt, chave, modelo)
+            except LimiteOpenRouter as e:
+                if esperas < 2:
+                    esperas += 1
+                    espera = min(e.espera, 600)
+                    print(f'⏳ {modelo} com limite de uso; esperando {espera}s ({esperas}/2)')
+                    time.sleep(espera)
+                    continue
+                print(f'↪️ {modelo} sem vaga após 2 esperas; tentando o próximo')
+                ultimo_erro = e
+                texto = None
+            except (RuntimeError, requests.RequestException) as e:
+                # 403/404 = modelo indisponível para esta chave: passa ao próximo. 401 (chave) segue fatal.
+                indisponivel = 'HTTP 403' in str(e) or 'HTTP 404' in str(e)
+                if not eh_temporario(e) and 'resposta vazia' not in str(e) and not indisponivel:
+                    raise
+                print(f'↪️ {modelo} indisponível agora; tentando o próximo ({e})')
+                ultimo_erro = e
+                texto = None
+            break
+        if texto is None:
             continue
         try:
             html, analise = separar_html(texto)
+            chave_pexels = os.environ.get('PEXELS_API_KEY', '').strip()
+            if chave_pexels:
+                html = inserir_imagens_pexels(html, chave_pexels)
         except RuntimeError as e:
             print(f'↪️ {modelo} reprovado: {e}')
             ultimo_erro = e
             continue
-        problemas = validar_artigo(html)
+        problemas = validar_artigo(html) + validar_imagens(html)
+        nota = problema_nota(analise)
+        if nota:
+            problemas.append(nota)
         if not problemas:
             return html, analise
         print(f'↪️ {modelo} reprovado: {"; ".join(problemas)}')
@@ -234,7 +356,8 @@ def gerar_com_lista(prompt, chave, modelos):
 
 def main():
     nome_chave = {'cerebras': 'CEREBRAS_API_KEY', 'openrouter': 'OPENROUTER_API_KEY'}.get(PROVEDOR, 'GEMINI_API_KEY')
-    chave = os.environ.get(nome_chave)
+    # strip(): secret colado com espaço ou quebra de linha quebra o cabeçalho HTTP
+    chave = (os.environ.get(nome_chave) or '').strip()
     if not chave:
         print(f'❌ {nome_chave} não configurada. Abortando.')
         return 1
