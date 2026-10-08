@@ -2,6 +2,8 @@ name: Baixar miniaturas (Pexels)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/vigilant-fermat-j3njnd]
 
 jobs:
   miniaturas:
