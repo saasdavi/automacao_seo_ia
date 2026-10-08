@@ -199,7 +199,11 @@ def gerar_openrouter(prompt, chave, modelo):
     )
     if r.status_code != 200:
         raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
-    return limpar(r.json()['choices'][0]['message']['content'])
+    conteudo = r.json()['choices'][0]['message'].get('content')
+    if not conteudo:
+        # Modelo gratuito às vezes devolve vazio: vira reprovação e passa ao próximo modelo
+        raise RuntimeError('resposta vazia da IA')
+    return limpar(conteudo)
 
 
 def gerar_com_lista(prompt, chave, modelos):
@@ -213,9 +217,9 @@ def gerar_com_lista(prompt, chave, modelos):
         try:
             texto = com_tentativas(prompt, chave, modelo)
         except (RuntimeError, requests.RequestException) as e:
-            if not eh_temporario(e):
+            if not eh_temporario(e) and 'resposta vazia' not in str(e):
                 raise
-            print(f'↪️ {modelo} indisponível agora; tentando o próximo')
+            print(f'↪️ {modelo} indisponível agora; tentando o próximo ({e})')
             ultimo_erro = e
             continue
         try:
