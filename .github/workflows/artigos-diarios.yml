@@ -1,6 +1,6 @@
-name: Artigos diários (SERP + OpenRouter)
+name: Artigos diários (Gemini)
 
-# 3 artigos por dia: 09h, 12h e 20h de Brasília (UTC-3). Provedor: OpenRouter.
+# 3 artigos por dia: 09h, 12h e 20h de Brasília (UTC-3). Provedor padrão: Gemini.
 # Não pesquisa SERP: lê a linha já enriquecida pelo workflow "Enriquecer SERP".
 on:
   schedule:
@@ -12,11 +12,11 @@ on:
       provedor:
         description: 'Provedor de IA para esta execução'
         required: false
-        default: openrouter
+        default: gemini
         type: choice
         options:
-          - openrouter
           - gemini
+          - openrouter
 
 # Uma execução por vez, para não gravar o CSV em paralelo
 concurrency:
@@ -42,8 +42,8 @@ jobs:
 
     - name: Gerar artigo com IA
       env:
-        # Provedor único: OpenRouter (modelos gratuitos, lista em OPENROUTER_MODELS no script)
-        LLM_PROVIDER: ${{ github.event.inputs.provedor || 'openrouter' }}
+        # Provedor padrão: Gemini (API gratuita). OpenRouter só se for escolhido no disparo manual
+        LLM_PROVIDER: ${{ github.event.inputs.provedor || 'gemini' }}
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
