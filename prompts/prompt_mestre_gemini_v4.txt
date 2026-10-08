@@ -40,7 +40,7 @@ O HTML deve conter:
 - Seção "Fontes" com mínimo 6 URLs diretas clicáveis
 - Aviso final: "Este conteúdo é informativo e não substitui a orientação de um profissional de saúde."
 
-IMAGENS: não escreva script nem chave de API no HTML. Só inclua uma imagem (<figure> com <img>) se souber uma URL real e pública de imagem de uso livre; caso contrário, não inclua imagem. O alt text, quando houver imagem, tem 50 a 125 caracteres e descreve o que aparece.
+IMAGENS: escreva 3 imagens no corpo, no formato exato <img data-pexels="termo de busca em inglês" alt="descrição em português, 50 a 125 caracteres, com a palavra-chave quando natural">. Não escreva src, não escreva script e não coloque chave de API. O sistema busca a foto real e monta a imagem e o crédito. Cada alt é único, não começa com "imagem de" nem "foto de", e descreve o que aparece na foto.
 
 AUTOR E REVISOR: não invente nome, CRM, titulação nem revisor médico. Não escreva assinatura de médico nem caixa de autor com credenciais. Não use a palavra "CRM" no artigo nem no JSON-LD.
 

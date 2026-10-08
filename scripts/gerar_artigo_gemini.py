@@ -48,6 +48,7 @@ MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
 API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
 URL_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
+URL_PEXELS = 'https://api.pexels.com/v1/search'
 
 
 def limpar(texto):
@@ -61,6 +62,70 @@ def limpar(texto):
 def data_brasilia():
     """Data e hora atuais em Brasília (UTC-3), para datePublished do artigo."""
     return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3))).isoformat(timespec='seconds')
+
+
+PADRAO_IMG_PEXELS = re.compile(r'<img\b[^>]*\bdata-pexels="([^"]+)"[^>]*>', re.I)
+
+
+def buscar_foto_pexels(termo, chave_pexels, usadas):
+    """Foto da Pexels para o termo, sem repetir foto já usada no artigo."""
+    r = requests.get(
+        URL_PEXELS,
+        headers={'Authorization': chave_pexels},
+        params={'query': termo, 'per_page': 10, 'orientation': 'landscape'},
+        timeout=30,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'Pexels HTTP {r.status_code}')
+    for foto in r.json().get('photos', []):
+        if foto['id'] not in usadas:
+            return foto
+    return None
+
+
+def inserir_imagens_pexels(html, chave_pexels):
+    """Troca cada <img data-pexels> pela foto real, com alt do SEO e crédito do fotógrafo.
+
+    A chave fica só no servidor: o HTML publicado não contém chave nem script.
+    Sem foto para o termo, a imagem é removida (o artigo continua válido).
+    """
+    usadas = set()
+
+    def trocar(m):
+        tag = m.group(0)
+        alt_m = re.search(r'\balt="([^"]*)"', tag)
+        alt = html_lib.escape(alt_m.group(1) if alt_m else '', quote=True)
+        foto = buscar_foto_pexels(m.group(1), chave_pexels, usadas)
+        if not foto:
+            return ''
+        usadas.add(foto['id'])
+        return (
+            f'<figure><img src="{foto["src"]["large"]}" alt="{alt}" '
+            f'width="{foto["width"]}" height="{foto["height"]}" loading="lazy">'
+            f'<figcaption>Foto por <a href="{foto["photographer_url"]}" target="_blank" rel="noopener">'
+            f'{html_lib.escape(foto["photographer"])}</a> no '
+            f'<a href="{foto["url"]}" target="_blank" rel="noopener">Pexels</a></figcaption></figure>'
+        )
+
+    return PADRAO_IMG_PEXELS.sub(trocar, html)
+
+
+def validar_imagens(html):
+    """Regras de SEO e acessibilidade para as imagens. Lista vazia = aprovado."""
+    problemas = []
+    if 'data-pexels' in html:
+        problemas.append('imagem sem foto da Pexels')
+    alts = re.findall(r'<img\b[^>]*\balt="([^"]*)"', html, flags=re.I)
+    if len(alts) < 1:
+        problemas.append('sem imagem no artigo')
+    for alt in alts:
+        if not 50 <= len(alt) <= 125:
+            problemas.append(f'alt com {len(alt)} caracteres (50 a 125)')
+        if alt.lower().startswith(('imagem de', 'foto de')):
+            problemas.append('alt começa com "imagem de" ou "foto de"')
+    if len(set(alts)) != len(alts):
+        problemas.append('alt repetido entre imagens')
+    return problemas
 
 
 def validar_artigo(html):
@@ -271,11 +336,14 @@ def gerar_com_lista(prompt, chave, modelos):
             continue
         try:
             html, analise = separar_html(texto)
+            chave_pexels = os.environ.get('PEXELS_API_KEY', '').strip()
+            if chave_pexels:
+                html = inserir_imagens_pexels(html, chave_pexels)
         except RuntimeError as e:
             print(f'↪️ {modelo} reprovado: {e}')
             ultimo_erro = e
             continue
-        problemas = validar_artigo(html)
+        problemas = validar_artigo(html) + validar_imagens(html)
         nota = problema_nota(analise)
         if nota:
             problemas.append(nota)

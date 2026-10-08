@@ -36,6 +36,7 @@ jobs:
         # Provedor único: OpenRouter (modelos gratuitos, lista em OPENROUTER_MODELS no script)
         LLM_PROVIDER: openrouter
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         MAX_ARTIGOS: '1'
       run: python scripts/gerar_artigo_gemini.py
 
