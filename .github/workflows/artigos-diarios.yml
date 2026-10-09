@@ -26,6 +26,8 @@ concurrency:
 jobs:
   artigos:
     runs-on: ubuntu-latest
+    # Teto de segurança: uma execução travada não pode ficar horas rodando
+    timeout-minutes: 45
     permissions:
       contents: write
     steps:

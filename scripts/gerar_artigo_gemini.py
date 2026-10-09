@@ -56,6 +56,7 @@ API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
 URL_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
 URL_PEXELS = 'https://api.pexels.com/v1/search'
+ESPERA_MAX_LIMITE = 60  # segundos de espera em 429 do OpenRouter, antes de tentar o próximo modelo
 
 
 def limpar(texto):
@@ -360,20 +361,22 @@ def gerar_openrouter(prompt, chave, modelo):
 def gerar_uma(prompt, chave, modelo):
     """Uma geração com um modelo. Devolve o texto, ou None para passar ao próximo modelo.
 
-    Em limite de uso (429) espera o tempo indicado pelo OpenRouter, no máximo 2 vezes.
+    Em limite de uso (429) do OpenRouter espera no máximo ESPERA_MAX_LIMITE segundos, uma vez,
+    e depois passa ao próximo modelo. Esperar o Retry-After inteiro (até 10 min por modelo)
+    travava a execução por horas, já que a lista tem vários modelos.
     No Gemini, 404 ou ocupado trocam para outro modelo da mesma família, uma vez."""
-    esperas = 0
+    esperou = False
     while True:
         try:
             return com_tentativas(prompt, chave, modelo)
         except LimiteOpenRouter as e:
-            if esperas < 2:
-                esperas += 1
-                espera = min(e.espera, 600)
-                print(f'⏳ {modelo} com limite de uso; esperando {espera}s ({esperas}/2)')
+            if not esperou:
+                esperou = True
+                espera = min(e.espera, ESPERA_MAX_LIMITE)
+                print(f'⏳ {modelo} com limite de uso; esperando {espera}s')
                 time.sleep(espera)
                 continue
-            print(f'↪️ {modelo} sem vaga após 2 esperas; tentando o próximo')
+            print(f'↪️ {modelo} sem vaga após a espera; tentando o próximo')
             return None
         except (RuntimeError, requests.RequestException) as e:
             if PROVEDOR == 'gemini' and 'HTTP 429' in str(e):
