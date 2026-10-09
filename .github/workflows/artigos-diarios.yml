@@ -16,7 +16,6 @@ on:
         type: choice
         options:
           - gemini
-          - openrouter
 
 # Uma execução por vez, para não gravar o CSV em paralelo
 concurrency:
@@ -44,11 +43,7 @@ jobs:
 
     - name: Gerar artigo com IA
       env:
-        # Provedor padrão: Gemini (API gratuita). OpenRouter só se for escolhido no disparo manual
-        # 09h (cron 0 12) usa Gemini, com fallback para OpenRouter. 12h e 20h usam OpenRouter.
-        # Disparo manual usa o campo "provedor".
-        LLM_PROVIDER: ${{ github.event.inputs.provedor || (github.event.schedule == '0 12 * * *' && 'gemini' || 'openrouter') }}
-        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        LLM_PROVIDER: ${{ github.event.inputs.provedor || 'gemini' }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         MAX_ARTIGOS: '1'
