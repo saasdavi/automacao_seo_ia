@@ -232,8 +232,15 @@ def separar_html(texto):
     return texto[:fim] + '\n', texto[fim:].strip()
 
 
+def pausa_gemini():
+    """Intervalo antes de qualquer chamada ao Gemini (geração ou listagem), para não passar do limite por minuto."""
+    if PAUSA_ENTRE_CHAMADAS:
+        time.sleep(PAUSA_ENTRE_CHAMADAS)
+
+
 def modelo_disponivel(chave):
     """Escolhe um modelo flash disponível para a chave do Gemini (o Google aposenta modelos com o tempo)."""
+    pausa_gemini()
     r = requests.get(f'{API_GEMINI}/models', headers={'x-goog-api-key': chave}, params={'pageSize': 100}, timeout=60)
     r.raise_for_status()
     candidatos = [
@@ -247,6 +254,7 @@ def modelo_disponivel(chave):
 
 def modelo_alternativo(chave, atual):
     """Outro modelo flash do Gemini (inclusive 'lite', com menos demanda) para quando o principal está ocupado."""
+    pausa_gemini()
     r = requests.get(f'{API_GEMINI}/models', headers={'x-goog-api-key': chave}, params={'pageSize': 100}, timeout=60)
     r.raise_for_status()
     candidatos = [
@@ -281,10 +289,9 @@ def com_tentativas(prompt, chave, modelo, maximo=5):
 
 
 def chamar(prompt, chave, modelo):
-    if PROVEDOR == 'gemini' and PAUSA_ENTRE_CHAMADAS:
-        time.sleep(PAUSA_ENTRE_CHAMADAS)
     if PROVEDOR == 'cerebras':
         return gerar_cerebras(prompt, chave, modelo)
+    pausa_gemini()
     return gerar_gemini(prompt, chave, modelo)
 
 
