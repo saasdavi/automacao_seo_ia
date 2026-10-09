@@ -31,6 +31,9 @@ Settings → Secrets and variables → Actions:
 - **Execução vermelha com "Nenhum dos artigos foi pesquisado"**: a pesquisa falhou em todas as linhas. Veja a causa acima.
 - **Geração falhou em todos os modelos**: confira `OPENROUTER_API_KEY` (sem espaço ao colar) e a lista `OPENROUTER_MODELS`. Modelos gratuitos podem sair do ar, reprovar na validação ou atingir o limite; o log mostra o motivo de cada um.
 - **Modelos usados** (gratuitos, em ordem): ver a lista `OPENROUTER_MODELS` em `scripts/gerar_artigo_gemini.py`.
+- **"HTTP 429" do Gemini ("exceeded your current quota")**: a cota do projeto acabou, geralmente por dia. O job não insiste no Gemini: gera o artigo pelo OpenRouter, se `OPENROUTER_API_KEY` estiver configurada. O log mostra `(provedor: openrouter)`.
+- **Divisão por horário**: a execução das 09h usa Gemini (com fallback); as de 12h e 20h usam OpenRouter. O disparo manual usa o campo `provedor`.
+- Pausa entre chamadas ao Gemini: `PAUSA_ENTRE_CHAMADAS` (padrão 15 s; 0 desliga).
 
 ### Geração manual (opcional)
 - Abra `dados/calendario_blog_1_ano.csv`
