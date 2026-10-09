@@ -428,7 +428,13 @@ def gerar_validado(prompt, chave, modelos, rodadas):
             atual = prompt if n == 0 else montar_reescrita(prompt, anterior, problemas, analise_ant)
             if n:
                 print(f'✏️ {modelo}: reescrita {n}/{rodadas} com a lista de problemas')
-            texto = gerar_uma(atual, chave, modelo)
+            try:
+                texto = gerar_uma(atual, chave, modelo)
+            except (RuntimeError, requests.RequestException) as e:
+                # Erro fatal deste modelo (ex.: 401 de chave inválida): passa ao próximo, como o Claude
+                print(f'↪️ {modelo} falhou: {e}')
+                ultimo_erro = e
+                break
             if texto is None:
                 break
             try:
