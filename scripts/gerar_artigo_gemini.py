@@ -14,7 +14,9 @@ Variáveis de ambiente:
     GEMINI_API_KEY    chave do Gemini (quando LLM_PROVIDER=gemini)
     GEMINI_MODEL      modelo do Gemini (padrão: gemini-3.8-flash)
     BYTEPLUS_API_KEY  chave da BytePlus ModelArk (quando LLM_PROVIDER=byteplus)
-    BYTEPLUS_MODEL    modelo da BytePlus (padrão: seed-2-0-lite-260228)
+    BYTEPLUS_MODELS   modelos da BytePlus em ordem, separados por vírgula; se um esgotar a cota, passa ao próximo
+                      (padrão: deepseek-v4-pro-ga-260813, dola-seed-2-1-turbo-260628,
+                      deepseek-v4-flash-ga-260731, seed-2-0-lite-260228)
     CEREBRAS_API_KEY  chave da Cerebras (quando LLM_PROVIDER=cerebras)
     CEREBRAS_MODEL    modelo da Cerebras (padrão: qwen-3-235b-a22b-instruct-2507)
     MAX_ARTIGOS       quantos artigos gerar nesta execução (padrão: 1)
@@ -45,7 +47,13 @@ PAUSA_ENTRE_CHAMADAS = float(os.environ.get('PAUSA_ENTRE_CHAMADAS') or 15)
 API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
 URL_BYTEPLUS = 'https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions'
-MODELO_BYTEPLUS = os.environ.get('BYTEPLUS_MODEL', 'seed-2-0-lite-260228')
+# Modelos da BytePlus em ordem de preferência. Cada um tem cota gratuita própria na mesma conta.
+MODELOS_BYTEPLUS = [
+    m.strip() for m in os.environ.get(
+        'BYTEPLUS_MODELS',
+        'deepseek-v4-pro-ga-260813,dola-seed-2-1-turbo-260628,deepseek-v4-flash-ga-260731,seed-2-0-lite-260228',
+    ).split(',') if m.strip()
+]
 URL_PEXELS = 'https://api.pexels.com/v1/search'
 
 
@@ -317,7 +325,7 @@ def chamar(prompt, chave, modelo):
     if PROVEDOR == 'cerebras':
         return gerar_cerebras(prompt, chave, modelo)
     if PROVEDOR == 'byteplus':
-        return gerar_byteplus(prompt, chave, MODELO_BYTEPLUS)
+        return gerar_byteplus(prompt, chave, modelo)
     pausa_gemini()
     return gerar_gemini(prompt, chave, modelo)
 
@@ -451,7 +459,7 @@ def main():
         return 0
 
     geradas, falhas = 0, 0
-    modelo = {'cerebras': MODELO_CEREBRAS, 'byteplus': MODELO_BYTEPLUS}.get(PROVEDOR, MODELO_GEMINI)
+    modelo = {'cerebras': MODELO_CEREBRAS, 'byteplus': MODELOS_BYTEPLUS[0]}.get(PROVEDOR, MODELO_GEMINI)
     for linha in candidatas:
         prompt_path = linha['GEMINI_Prompt_Arquivo'].strip()
         base = os.path.basename(prompt_path).replace('.prompt.md', '')
@@ -460,7 +468,8 @@ def main():
         try:
             with open(prompt_path, encoding='utf-8') as f:
                 prompt = f.read().replace('{{DATA_HOJE}}', data_brasilia())
-            html, analise = gerar_validado(prompt, chave, [modelo], RODADAS_REESCRITA)
+            lista = MODELOS_BYTEPLUS if PROVEDOR == 'byteplus' else [modelo]
+            html, analise = gerar_validado(prompt, chave, lista, RODADAS_REESCRITA)
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1
