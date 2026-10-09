@@ -44,11 +44,10 @@ jobs:
 
     - name: Gerar artigo com IA
       env:
-        # 09h (cron 0 12) usa Gemini. 12h e 20h usam BytePlus (cota gratuita por modelo).
-        # Disparo manual usa o campo "provedor".
-        LLM_PROVIDER: ${{ github.event.inputs.provedor || (github.event.schedule == '0 12 * * *' && 'gemini' || 'byteplus') }}
+        # Gemini primeiro; se falhar (cota, indisponível ou reprovado), Claude Haiku assume.
+        LLM_PROVIDER: ${{ github.event.inputs.provedor || 'gemini' }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        BYTEPLUS_API_KEY: ${{ secrets.BYTEPLUS_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         MAX_ARTIGOS: '1'
       run: python scripts/gerar_artigo_gemini.py

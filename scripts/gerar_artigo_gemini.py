@@ -46,6 +46,8 @@ MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
 PAUSA_ENTRE_CHAMADAS = float(os.environ.get('PAUSA_ENTRE_CHAMADAS') or 15)
 API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
+URL_ANTHROPIC = 'https://api.anthropic.com/v1/messages'
+ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-haiku-5-5')  # fallback quando o Gemini falha
 URL_BYTEPLUS = 'https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions'
 # Modelos da BytePlus em ordem de preferência. Cada um tem cota gratuita própria na mesma conta.
 MODELOS_BYTEPLUS = [
@@ -321,7 +323,24 @@ def gerar_byteplus(prompt, chave, modelo):
     return limpar(conteudo)
 
 
+def gerar_anthropic(prompt):
+    """Claude pela API da Anthropic (pago, por token). Usado como fallback quando o Gemini falha."""
+    chave = (os.environ.get('ANTHROPIC_API_KEY') or '').strip()
+    r = requests.post(
+        URL_ANTHROPIC,
+        headers={'x-api-key': chave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json'},
+        json={'model': ANTHROPIC_MODEL, 'max_tokens': 16000, 'messages': [{'role': 'user', 'content': prompt}]},
+        timeout=300,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
+    texto = ''.join(b.get('text', '') for b in r.json().get('content', []) if b.get('type') == 'text')
+    return limpar(texto)
+
+
 def chamar(prompt, chave, modelo):
+    if modelo.startswith('claude-'):
+        return gerar_anthropic(prompt)
     if PROVEDOR == 'cerebras':
         return gerar_cerebras(prompt, chave, modelo)
     if PROVEDOR == 'byteplus':
@@ -469,6 +488,8 @@ def main():
             with open(prompt_path, encoding='utf-8') as f:
                 prompt = f.read().replace('{{DATA_HOJE}}', data_brasilia())
             lista = MODELOS_BYTEPLUS if PROVEDOR == 'byteplus' else [modelo]
+            if PROVEDOR == 'gemini' and (os.environ.get('ANTHROPIC_API_KEY') or '').strip():
+                lista.append(ANTHROPIC_MODEL)  # Gemini primeiro; Claude só se ele falhar
             html, analise = gerar_validado(prompt, chave, lista, RODADAS_REESCRITA)
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
