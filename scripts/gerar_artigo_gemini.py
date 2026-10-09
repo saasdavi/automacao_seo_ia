@@ -19,6 +19,10 @@ Variáveis de ambiente:
     OPENROUTER_MODELS modelos em ordem de preferência, separados por vírgula
                       (padrão: nemotron 3 super e gemma 4 31b, ambos gratuitos)
     MAX_ARTIGOS       quantos artigos gerar nesta execução (padrão: 1)
+    PAUSA_ENTRE_CHAMADAS  segundos de pausa antes de cada chamada ao Gemini (padrão: 15; 0 desliga)
+
+    Se o Gemini falhar (cota, indisponível ou reprovado) e OPENROUTER_API_KEY existir,
+    o artigo é gerado pela cadeia do OpenRouter.
 """
 
 import csv
@@ -46,6 +50,8 @@ MODELOS_OPENROUTER = [
     ).split(',') if m.strip()
 ]
 MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
+# Pausa antes de cada chamada ao Gemini, para não estourar o limite por minuto (0 desliga)
+PAUSA_ENTRE_CHAMADAS = float(os.environ.get('PAUSA_ENTRE_CHAMADAS') or 15)
 API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
 URL_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
@@ -288,6 +294,8 @@ def com_tentativas(prompt, chave, modelo, maximo=5):
 
 
 def chamar(prompt, chave, modelo):
+    if PROVEDOR == 'gemini' and PAUSA_ENTRE_CHAMADAS:
+        time.sleep(PAUSA_ENTRE_CHAMADAS)
     if PROVEDOR == 'cerebras':
         return gerar_cerebras(prompt, chave, modelo)
     if PROVEDOR == 'openrouter':
@@ -368,6 +376,9 @@ def gerar_uma(prompt, chave, modelo):
             print(f'↪️ {modelo} sem vaga após 2 esperas; tentando o próximo')
             return None
         except (RuntimeError, requests.RequestException) as e:
+            if PROVEDOR == 'gemini' and 'HTTP 429' in str(e):
+                # Cota do projeto: outro modelo Gemini receberia o mesmo 429. Sobe para o fallback.
+                raise
             if PROVEDOR == 'gemini' and ('HTTP 404' in str(e) or eh_temporario(e)):
                 novo = modelo_disponivel(chave) if 'HTTP 404' in str(e) else modelo_alternativo(chave, modelo)
                 if novo and novo != modelo:
@@ -439,8 +450,28 @@ def gerar_validado(prompt, chave, modelos, rodadas):
     raise ultimo_erro or RuntimeError('nenhum modelo gerou artigo')
 
 
+def gerar_com_fallback(prompt, chave, modelo):
+    """Gera com o provedor escolhido. Se for Gemini e ele falhar (cota, indisponível ou reprovado),
+    tenta a cadeia do OpenRouter, desde que OPENROUTER_API_KEY exista. Devolve (html, análise, provedor)."""
+    if PROVEDOR != 'gemini':
+        rodadas = min(RODADAS_REESCRITA, 1) if PROVEDOR == 'openrouter' else RODADAS_REESCRITA
+        lista = MODELOS_OPENROUTER if PROVEDOR == 'openrouter' else [modelo]
+        html, analise = gerar_validado(prompt, chave, lista, rodadas)
+        return html, analise, PROVEDOR
+    try:
+        html, analise = gerar_validado(prompt, chave, [modelo], RODADAS_REESCRITA)
+        return html, analise, 'gemini'
+    except (requests.RequestException, RuntimeError) as e:
+        chave_or = (os.environ.get('OPENROUTER_API_KEY') or '').strip()
+        if not chave_or:
+            raise
+        print(f'↪️ Gemini falhou ({e}); usando OpenRouter como fallback')
+        html, analise = gerar_validado(prompt, chave_or, MODELOS_OPENROUTER, min(RODADAS_REESCRITA, 1))
+        return html, analise, 'openrouter'
+
+
 def main():
-    nome_chave = {'cerebras': 'CEREBRAS_API_KEY', 'openrouter': 'OPENROUTER_API_KEY'}.get(PROVEDOR, 'GEMINI_API_KEY')
+    nome_chave ={'cerebras': 'CEREBRAS_API_KEY', 'openrouter': 'OPENROUTER_API_KEY'}.get(PROVEDOR, 'GEMINI_API_KEY')
     # strip(): secret colado com espaço ou quebra de linha quebra o cabeçalho HTTP
     chave = (os.environ.get(nome_chave) or '').strip()
     if not chave:
@@ -474,9 +505,7 @@ def main():
         try:
             with open(prompt_path, encoding='utf-8') as f:
                 prompt = f.read().replace('{{DATA_HOJE}}', data_brasilia())
-            lista = MODELOS_OPENROUTER if PROVEDOR == 'openrouter' else [modelo]
-            rodadas = RODADAS_REESCRITA if PROVEDOR != 'openrouter' else min(RODADAS_REESCRITA, 1)
-            html, analise = gerar_validado(prompt, chave, lista, rodadas)
+            html, analise, provedor_usado = gerar_com_fallback(prompt, chave, modelo)
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1
@@ -496,7 +525,7 @@ def main():
         linha['Artigo_Arquivo_HTML'] = nome_html
         linha['Status'] = 'GERADO'
         geradas += 1
-        print(f'✅ {nome_html} salvo')
+        print(f'✅ {nome_html} salvo (provedor: {provedor_usado})')
 
     with open(CSV_PATH, 'w', encoding='utf-8-sig', newline='') as f:
         # \n (e não \r\n) para não reescrever todas as linhas do arquivo no git
