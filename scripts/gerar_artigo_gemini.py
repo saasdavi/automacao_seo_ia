@@ -10,19 +10,17 @@ O que a IA escreve depois do </html> (análise interna, checklist, nota) não va
 para o artigo: é salvo em dados/saida/md/<base>.analise.md, que o site não publica.
 
 Variáveis de ambiente:
-    LLM_PROVIDER      'openrouter' (padrão), 'gemini' ou 'cerebras'
+    LLM_PROVIDER      'gemini' (padrão), 'byteplus' ou 'cerebras'
     GEMINI_API_KEY    chave do Gemini (quando LLM_PROVIDER=gemini)
     GEMINI_MODEL      modelo do Gemini (padrão: gemini-3.8-flash)
+    BYTEPLUS_API_KEY  chave da BytePlus ModelArk (quando LLM_PROVIDER=byteplus)
+    BYTEPLUS_MODELS   modelos da BytePlus em ordem, separados por vírgula; se um esgotar a cota, passa ao próximo
+                      (padrão: deepseek-v4-pro-ga-260813, dola-seed-2-1-turbo-260628,
+                      deepseek-v4-flash-ga-260731, seed-2-0-lite-260228)
     CEREBRAS_API_KEY  chave da Cerebras (quando LLM_PROVIDER=cerebras)
     CEREBRAS_MODEL    modelo da Cerebras (padrão: qwen-3-235b-a22b-instruct-2507)
-    OPENROUTER_API_KEY chave do OpenRouter (quando LLM_PROVIDER=openrouter)
-    OPENROUTER_MODELS modelos em ordem de preferência, separados por vírgula
-                      (padrão: nemotron 3 super e gemma 4 31b, ambos gratuitos)
     MAX_ARTIGOS       quantos artigos gerar nesta execução (padrão: 1)
-    PAUSA_ENTRE_CHAMADAS  segundos de pausa antes de cada chamada ao Gemini (padrão: 15; 0 desliga)
-
-    Se o Gemini falhar (cota, indisponível ou reprovado) e OPENROUTER_API_KEY existir,
-    o artigo é gerado pela cadeia do OpenRouter.
+    PAUSA_ENTRE_CHAMADAS  segundos de intervalo antes de cada chamada ao Gemini (padrão: 15; 0 desliga)
 """
 
 import csv
@@ -39,24 +37,26 @@ import requests
 CSV_PATH = os.path.join('dados', 'calendario_blog_1_ano.csv')
 HTML_DIR = os.path.join('dados', 'saida', 'html')
 ANALISE_DIR = os.path.join('dados', 'saida', 'md')
-PROVEDOR = os.environ.get('LLM_PROVIDER', 'openrouter')
+PROVEDOR = os.environ.get('LLM_PROVIDER', 'gemini')
 MODELO_GEMINI = os.environ.get('GEMINI_MODEL', 'gemini-3.8-flash')
 MODELO_CEREBRAS = os.environ.get('CEREBRAS_MODEL', 'qwen-3-235b-a22b-instruct-2507')
 RODADAS_REESCRITA = int(os.environ.get('RODADAS_REESCRITA') or 2)  # reescritas por modelo após reprovação
-MODELOS_OPENROUTER = [
-    m.strip() for m in os.environ.get(
-        'OPENROUTER_MODELS',
-        'apodex/apodex-1.1-mini:free,nvidia/nemotron-3-super-120b-a12b:free,nvidia/nemotron-3.5-lightning:free,thinkingmachines/inkling-small:free,dots-studio/dots-3-note-preview:free,poolside/laguna-s-2.1:free,poolside/laguna-xs-2.1:free,cohere/north-mini-code:free,liquid/lfm-2.5-2.6b:free,google/gemma-4-31b-it:free',
-    ).split(',') if m.strip()
-]
 MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
-# Pausa antes de cada chamada ao Gemini, para não estourar o limite por minuto (0 desliga)
+# Intervalo antes de cada chamada ao Gemini, para não estourar o limite por minuto (0 desliga)
 PAUSA_ENTRE_CHAMADAS = float(os.environ.get('PAUSA_ENTRE_CHAMADAS') or 15)
 API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
-URL_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
+URL_ANTHROPIC = 'https://api.anthropic.com/v1/messages'
+ANTHROPIC_MODEL = os.environ.get('ANTHROPIC_MODEL', 'claude-haiku-5-5')  # fallback quando o Gemini falha
+URL_BYTEPLUS = 'https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions'
+# Modelos da BytePlus em ordem de preferência. Cada um tem cota gratuita própria na mesma conta.
+MODELOS_BYTEPLUS = [
+    m.strip() for m in os.environ.get(
+        'BYTEPLUS_MODELS',
+        'deepseek-v4-pro-ga-260813,dola-seed-2-1-turbo-260628,deepseek-v4-flash-ga-260731,seed-2-0-lite-260228',
+    ).split(',') if m.strip()
+]
 URL_PEXELS = 'https://api.pexels.com/v1/search'
-ESPERA_MAX_LIMITE = 60  # segundos de espera em 429 do OpenRouter, antes de tentar o próximo modelo
 
 
 def limpar(texto):
@@ -246,8 +246,15 @@ def separar_html(texto):
     return texto[:fim] + '\n', texto[fim:].strip()
 
 
+def pausa_gemini():
+    """Intervalo antes de qualquer chamada ao Gemini (geração ou listagem), para não passar do limite por minuto."""
+    if PAUSA_ENTRE_CHAMADAS:
+        time.sleep(PAUSA_ENTRE_CHAMADAS)
+
+
 def modelo_disponivel(chave):
     """Escolhe um modelo flash disponível para a chave do Gemini (o Google aposenta modelos com o tempo)."""
+    pausa_gemini()
     r = requests.get(f'{API_GEMINI}/models', headers={'x-goog-api-key': chave}, params={'pageSize': 100}, timeout=60)
     r.raise_for_status()
     candidatos = [
@@ -261,6 +268,7 @@ def modelo_disponivel(chave):
 
 def modelo_alternativo(chave, atual):
     """Outro modelo flash do Gemini (inclusive 'lite', com menos demanda) para quando o principal está ocupado."""
+    pausa_gemini()
     r = requests.get(f'{API_GEMINI}/models', headers={'x-goog-api-key': chave}, params={'pageSize': 100}, timeout=60)
     r.raise_for_status()
     candidatos = [
@@ -294,13 +302,50 @@ def com_tentativas(prompt, chave, modelo, maximo=5):
             time.sleep(espera)
 
 
+def gerar_byteplus(prompt, chave, modelo):
+    """BytePlus ModelArk (endpoint compatível com OpenAI). Cota gratuita por modelo na conta."""
+    r = requests.post(
+        URL_BYTEPLUS,
+        headers={'Authorization': f'Bearer {chave}', 'Content-Type': 'application/json'},
+        json={
+            'model': modelo,
+            'messages': [{'role': 'user', 'content': prompt}],
+            'max_tokens': 16000,
+            'thinking': {'type': 'disabled'},  # raciocínio gasta cota sem melhorar o HTML
+        },
+        timeout=300,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
+    conteudo = r.json()['choices'][0]['message'].get('content')
+    if not conteudo:
+        raise RuntimeError('resposta vazia da IA')
+    return limpar(conteudo)
+
+
+def gerar_anthropic(prompt):
+    """Claude pela API da Anthropic (pago, por token). Usado como fallback quando o Gemini falha."""
+    chave = (os.environ.get('ANTHROPIC_API_KEY') or '').strip()
+    r = requests.post(
+        URL_ANTHROPIC,
+        headers={'x-api-key': chave, 'anthropic-version': '2023-06-01', 'content-type': 'application/json'},
+        json={'model': ANTHROPIC_MODEL, 'max_tokens': 16000, 'messages': [{'role': 'user', 'content': prompt}]},
+        timeout=300,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
+    texto = ''.join(b.get('text', '') for b in r.json().get('content', []) if b.get('type') == 'text')
+    return limpar(texto)
+
+
 def chamar(prompt, chave, modelo):
-    if PROVEDOR == 'gemini' and PAUSA_ENTRE_CHAMADAS:
-        time.sleep(PAUSA_ENTRE_CHAMADAS)
+    if modelo.startswith('claude-'):
+        return gerar_anthropic(prompt)
     if PROVEDOR == 'cerebras':
         return gerar_cerebras(prompt, chave, modelo)
-    if PROVEDOR == 'openrouter':
-        return gerar_openrouter(prompt, chave, modelo)
+    if PROVEDOR == 'byteplus':
+        return gerar_byteplus(prompt, chave, modelo)
+    pausa_gemini()
     return gerar_gemini(prompt, chave, modelo)
 
 
@@ -330,73 +375,28 @@ def gerar_cerebras(prompt, chave, modelo):
     return limpar(r.json()['choices'][0]['message']['content'])
 
 
-class LimiteOpenRouter(RuntimeError):
-    """429 do OpenRouter: limite de uso temporário. Carrega o tempo de espera sugerido."""
-
-    def __init__(self, mensagem, espera):
-        super().__init__(mensagem)
-        self.espera = espera
-
-
-def gerar_openrouter(prompt, chave, modelo):
-    r = requests.post(
-        URL_OPENROUTER,
-        headers={'Authorization': f'Bearer {chave}', 'Content-Type': 'application/json'},
-        json={'model': modelo, 'messages': [{'role': 'user', 'content': prompt}], 'max_tokens': 8000},
-        timeout=120,
-    )
-    if r.status_code == 429:
-        retry = r.headers.get('Retry-After', '')
-        espera = int(retry) if retry.isdigit() else 300
-        raise LimiteOpenRouter(f'HTTP 429: {r.text[:200]}', espera)
-    if r.status_code != 200:
-        raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
-    conteudo = r.json()['choices'][0]['message'].get('content')
-    if not conteudo:
-        # Modelo gratuito às vezes devolve vazio: vira reprovação e passa ao próximo modelo
-        raise RuntimeError('resposta vazia da IA')
-    return limpar(conteudo)
-
-
 def gerar_uma(prompt, chave, modelo):
     """Uma geração com um modelo. Devolve o texto, ou None para passar ao próximo modelo.
 
-    Em limite de uso (429) do OpenRouter espera no máximo ESPERA_MAX_LIMITE segundos, uma vez,
-    e depois passa ao próximo modelo. Esperar o Retry-After inteiro (até 10 min por modelo)
-    travava a execução por horas, já que a lista tem vários modelos.
     No Gemini, 404 ou ocupado trocam para outro modelo da mesma família, uma vez."""
-    esperou = False
-    while True:
-        try:
-            return com_tentativas(prompt, chave, modelo)
-        except LimiteOpenRouter as e:
-            if not esperou:
-                esperou = True
-                espera = min(e.espera, ESPERA_MAX_LIMITE)
-                print(f'⏳ {modelo} com limite de uso; esperando {espera}s')
-                time.sleep(espera)
-                continue
-            print(f'↪️ {modelo} sem vaga após a espera; tentando o próximo')
-            return None
-        except (RuntimeError, requests.RequestException) as e:
-            if PROVEDOR == 'gemini' and 'HTTP 429' in str(e):
-                # Cota do projeto: outro modelo Gemini receberia o mesmo 429. Sobe para o fallback.
-                raise
-            if PROVEDOR == 'gemini' and ('HTTP 404' in str(e) or eh_temporario(e)):
-                novo = modelo_disponivel(chave) if 'HTTP 404' in str(e) else modelo_alternativo(chave, modelo)
-                if novo and novo != modelo:
-                    print(f'↪️ {modelo} indisponível agora; tentando {novo}')
-                    try:
-                        return com_tentativas(prompt, chave, novo)
-                    except (RuntimeError, requests.RequestException) as e2:
-                        print(f'↪️ {novo} também falhou: {e2}')
-                        return None
-            # 403/404 = modelo indisponível para esta chave: passa ao próximo. 401 (chave) segue fatal.
-            indisponivel = 'HTTP 403' in str(e) or 'HTTP 404' in str(e)
-            if not eh_temporario(e) and 'resposta vazia' not in str(e) and not indisponivel:
-                raise
-            print(f'↪️ {modelo} indisponível agora; tentando o próximo ({e})')
-            return None
+    try:
+        return com_tentativas(prompt, chave, modelo)
+    except (RuntimeError, requests.RequestException) as e:
+        if PROVEDOR == 'gemini' and ('HTTP 404' in str(e) or eh_temporario(e)):
+            novo = modelo_disponivel(chave) if 'HTTP 404' in str(e) else modelo_alternativo(chave, modelo)
+            if novo and novo != modelo:
+                print(f'↪️ {modelo} indisponível agora; tentando {novo}')
+                try:
+                    return com_tentativas(prompt, chave, novo)
+                except (RuntimeError, requests.RequestException) as e2:
+                    print(f'↪️ {novo} também falhou: {e2}')
+                    return None
+        # 403/404 = modelo indisponível para esta chave. 401 (chave) segue fatal.
+        indisponivel = 'HTTP 403' in str(e) or 'HTTP 404' in str(e)
+        if not eh_temporario(e) and 'resposta vazia' not in str(e) and not indisponivel:
+            raise
+        print(f'↪️ {modelo} indisponível agora ({e})')
+        return None
 
 
 def montar_reescrita(prompt, html_anterior, problemas, analise_anterior=None):
@@ -453,28 +453,8 @@ def gerar_validado(prompt, chave, modelos, rodadas):
     raise ultimo_erro or RuntimeError('nenhum modelo gerou artigo')
 
 
-def gerar_com_fallback(prompt, chave, modelo):
-    """Gera com o provedor escolhido. Se for Gemini e ele falhar (cota, indisponível ou reprovado),
-    tenta a cadeia do OpenRouter, desde que OPENROUTER_API_KEY exista. Devolve (html, análise, provedor)."""
-    if PROVEDOR != 'gemini':
-        rodadas = min(RODADAS_REESCRITA, 1) if PROVEDOR == 'openrouter' else RODADAS_REESCRITA
-        lista = MODELOS_OPENROUTER if PROVEDOR == 'openrouter' else [modelo]
-        html, analise = gerar_validado(prompt, chave, lista, rodadas)
-        return html, analise, PROVEDOR
-    try:
-        html, analise = gerar_validado(prompt, chave, [modelo], RODADAS_REESCRITA)
-        return html, analise, 'gemini'
-    except (requests.RequestException, RuntimeError) as e:
-        chave_or = (os.environ.get('OPENROUTER_API_KEY') or '').strip()
-        if not chave_or:
-            raise
-        print(f'↪️ Gemini falhou ({e}); usando OpenRouter como fallback')
-        html, analise = gerar_validado(prompt, chave_or, MODELOS_OPENROUTER, min(RODADAS_REESCRITA, 1))
-        return html, analise, 'openrouter'
-
-
 def main():
-    nome_chave ={'cerebras': 'CEREBRAS_API_KEY', 'openrouter': 'OPENROUTER_API_KEY'}.get(PROVEDOR, 'GEMINI_API_KEY')
+    nome_chave = {'cerebras': 'CEREBRAS_API_KEY', 'byteplus': 'BYTEPLUS_API_KEY'}.get(PROVEDOR, 'GEMINI_API_KEY')
     # strip(): secret colado com espaço ou quebra de linha quebra o cabeçalho HTTP
     chave = (os.environ.get(nome_chave) or '').strip()
     if not chave:
@@ -498,17 +478,19 @@ def main():
         return 0
 
     geradas, falhas = 0, 0
-    modelo = MODELO_CEREBRAS if PROVEDOR == 'cerebras' else MODELO_GEMINI
+    modelo = {'cerebras': MODELO_CEREBRAS, 'byteplus': MODELOS_BYTEPLUS[0]}.get(PROVEDOR, MODELO_GEMINI)
     for linha in candidatas:
         prompt_path = linha['GEMINI_Prompt_Arquivo'].strip()
         base = os.path.basename(prompt_path).replace('.prompt.md', '')
         nome_html = f'{base}.html'
-        quem = ' > '.join(MODELOS_OPENROUTER) if PROVEDOR == 'openrouter' else modelo
-        print(f'🤖 Gerando {nome_html} ({PROVEDOR}: {quem})...')
+        print(f'🤖 Gerando {nome_html} ({PROVEDOR}: {modelo})...')
         try:
             with open(prompt_path, encoding='utf-8') as f:
                 prompt = f.read().replace('{{DATA_HOJE}}', data_brasilia())
-            html, analise, provedor_usado = gerar_com_fallback(prompt, chave, modelo)
+            lista = MODELOS_BYTEPLUS if PROVEDOR == 'byteplus' else [modelo]
+            if PROVEDOR == 'gemini' and (os.environ.get('ANTHROPIC_API_KEY') or '').strip():
+                lista.append(ANTHROPIC_MODEL)  # Gemini primeiro; Claude só se ele falhar
+            html, analise = gerar_validado(prompt, chave, lista, RODADAS_REESCRITA)
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1
@@ -528,7 +510,7 @@ def main():
         linha['Artigo_Arquivo_HTML'] = nome_html
         linha['Status'] = 'GERADO'
         geradas += 1
-        print(f'✅ {nome_html} salvo (provedor: {provedor_usado})')
+        print(f'✅ {nome_html} salvo')
 
     with open(CSV_PATH, 'w', encoding='utf-8-sig', newline='') as f:
         # \n (e não \r\n) para não reescrever todas as linhas do arquivo no git

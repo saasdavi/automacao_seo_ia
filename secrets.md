@@ -8,11 +8,16 @@
 5. Nome: `SERPAPI_KEY`
 6. Valor: cole sua chave
 
-## OpenRouter (geração dos artigos com modelos gratuitos)
-1. Acesse: https://openrouter.ai/settings/keys
-2. Crie uma chave e defina um limite de gastos na conta
-3. Nome do secret: `OPENROUTER_API_KEY`
-4. Modelos usados (gratuitos, em ordem): `apodex/apodex-1.1-mini:free`, `nvidia/nemotron-3-super-120b-a12b:free`, `nvidia/nemotron-3.5-lightning:free`, `thinkingmachines/inkling-small:free`, `dots-studio/dots-3-note-preview:free`, `poolside/laguna-s-2.1:free`, `poolside/laguna-xs-2.1:free`, `cohere/north-mini-code:free`, `liquid/lfm-2.5-2.6b:free`, `google/gemma-4-31b-it:free`
+## Gemini (geração dos artigos)
+1. Acesse: https://aistudio.google.com/apikey
+2. Crie a chave
+3. Nome do secret: `GEMINI_API_KEY`
+
+## BytePlus ModelArk (geração das execuções das 12h e 20h, cota gratuita)
+1. Acesse o console da BytePlus ModelArk (região ap-southeast-1) e crie uma API key
+2. Confirme no console o modelo com cota gratuita ativa (ex.: `seed-2-0-lite-260228`)
+3. Nome do secret: `BYTEPLUS_API_KEY`
+4. Nunca cole a chave em chat, issue ou commit
 
 ## Pexels API (fotos das miniaturas)
 1. Acesse: https://www.pexels.com/api/
