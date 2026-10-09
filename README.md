@@ -17,7 +17,8 @@ Settings → Secrets and variables → Actions:
 | Secret | Para que serve |
 |--------|----------------|
 | `SERPAPI_KEY` | Pesquisa SERP via serpapi.com (obrigatória) |
-| `GEMINI_API_KEY` | Geração dos artigos com o Gemini (obrigatória) |
+| `GEMINI_API_KEY` | Geração dos artigos das 9h com o Gemini (obrigatória) |
+| `BYTEPLUS_API_KEY` | Geração dos artigos das 12h e 20h com a BytePlus ModelArk (cota gratuita) |
 | `PEXELS_API_KEY` | Fotos das miniaturas (workflow "Baixar miniaturas") |
 
 ### 2. Acompanhar a Automação

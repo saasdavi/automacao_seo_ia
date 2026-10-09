@@ -13,6 +13,12 @@
 2. Crie a chave
 3. Nome do secret: `GEMINI_API_KEY`
 
+## BytePlus ModelArk (geração das execuções das 12h e 20h, cota gratuita)
+1. Acesse o console da BytePlus ModelArk (região ap-southeast-1) e crie uma API key
+2. Confirme no console o modelo com cota gratuita ativa (ex.: `seed-2-0-lite-260228`)
+3. Nome do secret: `BYTEPLUS_API_KEY`
+4. Nunca cole a chave em chat, issue ou commit
+
 ## Pexels API (fotos das miniaturas)
 1. Acesse: https://www.pexels.com/api/
 2. Crie chave gratuita

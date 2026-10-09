@@ -16,6 +16,7 @@ on:
         type: choice
         options:
           - gemini
+          - byteplus
 
 # Uma execução por vez, para não gravar o CSV em paralelo
 concurrency:
@@ -43,8 +44,11 @@ jobs:
 
     - name: Gerar artigo com IA
       env:
-        LLM_PROVIDER: ${{ github.event.inputs.provedor || 'gemini' }}
+        # 09h (cron 0 12) usa Gemini. 12h e 20h usam BytePlus (cota gratuita por modelo).
+        # Disparo manual usa o campo "provedor".
+        LLM_PROVIDER: ${{ github.event.inputs.provedor || (github.event.schedule == '0 12 * * *' && 'gemini' || 'byteplus') }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        BYTEPLUS_API_KEY: ${{ secrets.BYTEPLUS_API_KEY }}
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         MAX_ARTIGOS: '1'
       run: python scripts/gerar_artigo_gemini.py

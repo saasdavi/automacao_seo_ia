@@ -10,9 +10,11 @@ O que a IA escreve depois do </html> (análise interna, checklist, nota) não va
 para o artigo: é salvo em dados/saida/md/<base>.analise.md, que o site não publica.
 
 Variáveis de ambiente:
-    LLM_PROVIDER      'gemini' (padrão) ou 'cerebras'
+    LLM_PROVIDER      'gemini' (padrão), 'byteplus' ou 'cerebras'
     GEMINI_API_KEY    chave do Gemini (quando LLM_PROVIDER=gemini)
     GEMINI_MODEL      modelo do Gemini (padrão: gemini-3.8-flash)
+    BYTEPLUS_API_KEY  chave da BytePlus ModelArk (quando LLM_PROVIDER=byteplus)
+    BYTEPLUS_MODEL    modelo da BytePlus (padrão: seed-2-0-lite-260228)
     CEREBRAS_API_KEY  chave da Cerebras (quando LLM_PROVIDER=cerebras)
     CEREBRAS_MODEL    modelo da Cerebras (padrão: qwen-3-235b-a22b-instruct-2507)
     MAX_ARTIGOS       quantos artigos gerar nesta execução (padrão: 1)
@@ -42,6 +44,8 @@ MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
 PAUSA_ENTRE_CHAMADAS = float(os.environ.get('PAUSA_ENTRE_CHAMADAS') or 15)
 API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
+URL_BYTEPLUS = 'https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions'
+MODELO_BYTEPLUS = os.environ.get('BYTEPLUS_MODEL', 'seed-2-0-lite-260228')
 URL_PEXELS = 'https://api.pexels.com/v1/search'
 
 
@@ -288,9 +292,32 @@ def com_tentativas(prompt, chave, modelo, maximo=5):
             time.sleep(espera)
 
 
+def gerar_byteplus(prompt, chave, modelo):
+    """BytePlus ModelArk (endpoint compatível com OpenAI). Cota gratuita por modelo na conta."""
+    r = requests.post(
+        URL_BYTEPLUS,
+        headers={'Authorization': f'Bearer {chave}', 'Content-Type': 'application/json'},
+        json={
+            'model': modelo,
+            'messages': [{'role': 'user', 'content': prompt}],
+            'max_tokens': 16000,
+            'thinking': {'type': 'disabled'},  # raciocínio gasta cota sem melhorar o HTML
+        },
+        timeout=300,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'HTTP {r.status_code}: {r.text[:200]}')
+    conteudo = r.json()['choices'][0]['message'].get('content')
+    if not conteudo:
+        raise RuntimeError('resposta vazia da IA')
+    return limpar(conteudo)
+
+
 def chamar(prompt, chave, modelo):
     if PROVEDOR == 'cerebras':
         return gerar_cerebras(prompt, chave, modelo)
+    if PROVEDOR == 'byteplus':
+        return gerar_byteplus(prompt, chave, MODELO_BYTEPLUS)
     pausa_gemini()
     return gerar_gemini(prompt, chave, modelo)
 
@@ -400,7 +427,7 @@ def gerar_validado(prompt, chave, modelos, rodadas):
 
 
 def main():
-    nome_chave = {'cerebras': 'CEREBRAS_API_KEY'}.get(PROVEDOR, 'GEMINI_API_KEY')
+    nome_chave = {'cerebras': 'CEREBRAS_API_KEY', 'byteplus': 'BYTEPLUS_API_KEY'}.get(PROVEDOR, 'GEMINI_API_KEY')
     # strip(): secret colado com espaço ou quebra de linha quebra o cabeçalho HTTP
     chave = (os.environ.get(nome_chave) or '').strip()
     if not chave:
@@ -424,7 +451,7 @@ def main():
         return 0
 
     geradas, falhas = 0, 0
-    modelo = MODELO_CEREBRAS if PROVEDOR == 'cerebras' else MODELO_GEMINI
+    modelo = {'cerebras': MODELO_CEREBRAS, 'byteplus': MODELO_BYTEPLUS}.get(PROVEDOR, MODELO_GEMINI)
     for linha in candidatas:
         prompt_path = linha['GEMINI_Prompt_Arquivo'].strip()
         base = os.path.basename(prompt_path).replace('.prompt.md', '')
