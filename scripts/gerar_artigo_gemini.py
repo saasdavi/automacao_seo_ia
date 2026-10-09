@@ -16,7 +16,7 @@ Variáveis de ambiente:
     CEREBRAS_API_KEY  chave da Cerebras (quando LLM_PROVIDER=cerebras)
     CEREBRAS_MODEL    modelo da Cerebras (padrão: qwen-3-235b-a22b-instruct-2507)
     MAX_ARTIGOS       quantos artigos gerar nesta execução (padrão: 1)
-    PAUSA_ENTRE_CHAMADAS  segundos de pausa antes de cada chamada ao Gemini (padrão: 15; 0 desliga)
+    PAUSA_ENTRE_CHAMADAS  segundos de intervalo antes de cada chamada ao Gemini (padrão: 15; 0 desliga)
 """
 
 import csv
@@ -38,7 +38,7 @@ MODELO_GEMINI = os.environ.get('GEMINI_MODEL', 'gemini-3.8-flash')
 MODELO_CEREBRAS = os.environ.get('CEREBRAS_MODEL', 'qwen-3-235b-a22b-instruct-2507')
 RODADAS_REESCRITA = int(os.environ.get('RODADAS_REESCRITA') or 2)  # reescritas por modelo após reprovação
 MAX_ARTIGOS = int(os.environ.get('MAX_ARTIGOS', '1') or 1)
-# Pausa antes de cada chamada ao Gemini, para não estourar o limite por minuto (0 desliga)
+# Intervalo antes de cada chamada ao Gemini, para não estourar o limite por minuto (0 desliga)
 PAUSA_ENTRE_CHAMADAS = float(os.environ.get('PAUSA_ENTRE_CHAMADAS') or 15)
 API_GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 URL_CEREBRAS = 'https://api.cerebras.ai/v1/chat/completions'
@@ -315,16 +315,13 @@ def gerar_cerebras(prompt, chave, modelo):
 
 
 def gerar_uma(prompt, chave, modelo):
-    """Uma geração com um modelo. Devolve o texto, ou None para desistir do modelo.
+    """Uma geração com um modelo. Devolve o texto, ou None para passar ao próximo modelo.
 
-    No Gemini, 404 ou ocupado trocam para outro modelo da mesma família, uma vez.
-    429 (cota do projeto) não troca de modelo: outro modelo receberia o mesmo erro, então sobe."""
+    No Gemini, 404 ou ocupado trocam para outro modelo da mesma família, uma vez."""
     try:
         return com_tentativas(prompt, chave, modelo)
     except (RuntimeError, requests.RequestException) as e:
-        if 'HTTP 429' in str(e):
-            raise
-        if 'HTTP 404' in str(e) or eh_temporario(e):
+        if PROVEDOR == 'gemini' and ('HTTP 404' in str(e) or eh_temporario(e)):
             novo = modelo_disponivel(chave) if 'HTTP 404' in str(e) else modelo_alternativo(chave, modelo)
             if novo and novo != modelo:
                 print(f'↪️ {modelo} indisponível agora; tentando {novo}')
