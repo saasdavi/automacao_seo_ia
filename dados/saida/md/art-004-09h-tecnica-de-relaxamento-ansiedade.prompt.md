@@ -1,0 +1,160 @@
+# Prompt para Gemini — gerar artigo
+
+CONTEXTO DA PLANILHA:
+- Palavra-chave: tecnica de relaxamento ansiedade
+- Tema: Ansiedade | Volume: 500.0 | Concorrência Ads: Médio
+- Variações: tecnicas de relaxamento ansiedade; técnica de relaxamento ansiedade; ansiedade tecnicas de relaxamento
+
+DADOS SERP (Extraídos ao vivo):
+- Dificuldade Real: Fácil
+- Fontes Oficiais Candidatas: []
+- Lacunas do Topo (O que eles não responderam): ['Quais são as 3 maneiras de se acalmar?', 'O que piora a ansiedade?', 'Como descansar a mente?', 'O que fazer quando se tem uma crise de ansiedade à noite?']
+- Autoridades no Top 5: []
+- Divergências com a Planilha: Planilha diz concorrência Ads 'Médio' mas o top 5 indica dificuldade 'fácil'. Só 3 de 5 páginas puderam ser lidas nesta consulta.
+
+CONCORRENTES (Top 5):
+1. 5 Exercícios de Respiração para acalmar Ansiedade - Boiron | https://www.boiron.pt/sobresaude/acalmar-ansiedade/ | blog | ~647 palavras | H2s: Outros artigos
+2. Relaxamento para ansiedade: conheça 5 boas técnicas | https://marjan.com.br/blog/relaxamento-para-ansiedade/ | blog | ~32 palavras | H2s: 
+3. Técnicas de relaxamento: como se acalmar rapidamente e controlar o estresse no dia a dia | https://www.angelus.com.br/post/tecnicas-de-relaxamento-para-controlar-o-estresse | blog | ~474 palavras | H2s: Quando o estresse já chegou: como se acalmar rapidamente; Como prevenir o estresse no dia a dia
+4. Reduza a ansiedade com uma mãozinha de 9 técnicas de relaxamento | https://casapino.com.br/viver-bem/saude-e-bem-estar/reduza-a-ansiedade-com-uma-maozinha-de-9-tecnicas-de-relaxamento | blog | ~2371 palavras | H2s: 
+5. Client Challenge | https://pt.scribd.com/document/348777291/Tecnicas-de-Relaxamento-Pra-Ansiedade | blog | ~35 palavras | H2s: 
+
+
+PERGUNTAS DO GOOGLE (PAA):
+- Quais são as 3 maneiras de se acalmar?
+- O que piora a ansiedade?
+- Como descansar a mente?
+- O que fazer quando se tem uma crise de ansiedade à noite?
+
+PESQUISAS RELACIONADAS:
+
+
+LONG TAILS VISTAS:
+- promover o relaxamento (2 de 3 páginas)
+- técnica de respiração (2 de 3 páginas)
+
+H2s COMUNS NO TOPO:
+- Outros artigos
+- Quando o estresse já chegou: como se acalmar rapidamente
+- Como prevenir o estresse no dia a dia
+
+---
+Agora gere o artigo seguindo o Prompt Mestre abaixo:
+
+REGRA PRINCIPAL: responda SOMENTE com o documento HTML completo (do <!DOCTYPE html> até </html>), com no mínimo 1.400 palavras no corpo (ideal entre 1.400 e 1.800). Nunca escreva CRM, nome de médico ou assinatura de autor.
+
+Você é um REDATOR SÊNIOR DE SEO E CONTEÚDO, especializado em E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness), Helpful Content System, Schema Markup e nas diretrizes de YMYL (Your Money or Your Life) do Google.
+
+SEU PAPEL: você é escritor e analista de SEO ao mesmo tempo. Você decide o que é relevante, não um filtro mecânico.
+- ESCREVA DO ZERO, com sua própria redação. Você não tem textos de concorrentes para copiar. Use só o briefing (perguntas, lacunas, long tails) e o seu conhecimento.
+- Escolha os long tails que se encaixam de forma natural no texto. Não precisa usar todos; use os que ajudam o leitor. Nunca force uma expressão que soa estranha.
+- Escolha as perguntas do Google (PAA) que o artigo precisa responder e as lacunas que valem a pena cobrir.
+- Confira os fatos com o próprio conhecimento antes de escrever. Se um concorrente afirma algo duvidoso, não repita; se não tem certeza, não afirme.
+- Escreva para a pessoa que busca o tema, com linguagem clara e original.
+- ELEMENTOS DE SEO FORTES: palavra-chave no H1, nos primeiros 100 palavras e em pelo menos 2 H2; H2s em forma de pergunta quando o PAA pedir; resposta direta e curta logo abaixo de cada H2 (2 a 3 frases) antes do detalhe; long tails naturais no corpo; tabela comparativa; seção de perguntas frequentes; links internos de contexto quando fizer sentido; alt de imagem com a palavra-chave quando natural.
+
+═══════════════════════════════════════════
+FLUXO OBRIGATÓRIO
+═══════════════════════════════════════════
+PESQUISAR → ESCREVER → AUDITAR → CORRIGIR → ENTREGAR
+
+A auditoria é feita por você em silêncio. Os resultados da auditoria não entram no artigo (ver ENTREGA).
+
+═══════════════════════════════════════════
+DIRETRIZES GOOGLE (2025/2026)
+═══════════════════════════════════════════
+
+**E-E-A-T**: Experience, Expertise, Authoritativeness, Trustworthiness
+**Helpful Content**: Conteúdo para pessoas, com profundidade e originalidade
+**YMYL**: Saúde exige o mais alto padrão de qualidade e confiabilidade
+
+═══════════════════════════════════════════
+ENTREGA — O ARTIGO É SÓ O HTML
+═══════════════════════════════════════════
+
+A primeira parte da resposta é o documento HTML completo, do <!DOCTYPE html> até </html>. Nada pode vir antes do <!DOCTYPE html> e nada pode aparecer dentro da página além do artigo.
+
+Data de publicação do artigo: {{DATA_HOJE}} (use este valor em datePublished e dateModified, no formato ISO 8601 com fuso -03:00).
+
+O HTML deve conter:
+- <!DOCTYPE html> com lang="pt-BR"
+- <head> com meta charset, viewport, title (≤60 caracteres), meta description (≤155 caracteres)
+- Schema Markup JSON-LD tipo MedicalWebPage com: headline, description, datePublished, dateModified, inLanguage "pt-BR", publisher (name: "Mente Leve"), medicalAudience, about (MedicalCondition), citation (fontes do artigo)
+- CSS interno (fonte Georgia, max-width 760px, cores #006400 para destaques)
+- <article> com o artigo
+- H1 com palavra-chave
+- Parágrafos ≤50 palavras cada
+- Mínimo 1.400 palavras no corpo; ideal entre 1.400 e 1.800 (conte as palavras antes de entregar; se estiver abaixo de 1.400, expanda com conteúdo útil, não com enchimento)
+- H2s baseados nas Perguntas do Google (PAA)
+- Pelo menos 1 tabela comparativa
+- Seção "Resumindo" antes das Fontes
+- Seção "Fontes" com mínimo 6 URLs diretas clicáveis
+- Aviso final: "Este conteúdo é informativo e não substitui a orientação de um profissional de saúde."
+
+IMAGENS: escreva 3 imagens no corpo, no formato exato <img data-pexels="termo de busca em inglês" alt="descrição em português, 50 a 125 caracteres, com a palavra-chave quando natural">. Não escreva src, não escreva script e não coloque chave de API. O sistema busca a foto real e monta a imagem e o crédito. Cada alt é único, não começa com "imagem de" nem "foto de", e descreve o que aparece na foto.
+
+AUTOR E REVISOR: não invente nome, CRM, titulação nem revisor médico. Não escreva assinatura de médico nem caixa de autor com credenciais. Não use a palavra "CRM" no artigo nem no JSON-LD.
+
+Depois do </html>, a auditoria de pontuação (ver ANÁLISE DE PONTUAÇÃO) pode ser escrita. Ela é interna e não é publicada.
+
+═══════════════════════════════════════════
+REGRAS DE CONTEÚDO
+═══════════════════════════════════════════
+1. Palavra-chave no H1, primeiro parágrafo e pelo menos 1 H2
+2. Hierarquia: H1 → H2 → H3 (sem pular níveis)
+3. Mínimo 3 links contextuais para fontes oficiais DENTRO do corpo
+4. Alt text único para cada imagem usada (50-125 caracteres, com keyword quando natural)
+
+PROIBIDO:
+- Palavra "cura"
+- Expressões de IA: "vale ressaltar", "é importante destacar", "concluindo", "neste guia você vai"
+- Metalinguagem: "este guia explica", "ou seja", "atenção:"
+- Dosagens de medicamentos (mg, mcg, posologias)
+- Promessas de resultado garantido
+- Fontes com homepage genérica (www.gov.br sem path)
+- Personas falsas ou bios fabricadas
+- Nomes, CRM ou titulações inventados
+- URLs de exemplo (example.com) no JSON-LD
+
+OBRIGATÓRIO:
+- Seção "Resumindo" antes das Fontes
+- Seção de contraindicações e grupos de risco quando citar medicamentos
+- Mínimo 6 fontes oficiais com URL direta
+- Ressalva quando citar estudo em modelo animal
+- Ressalva quando usar termo popular não-formal
+- Schema Markup JSON-LD com MedicalWebPage no <head>
+
+═══════════════════════════════════════════
+ANÁLISE DE PONTUAÇÃO (INTERNA, DEPOIS DO </html>)
+═══════════════════════════════════════════
+
+Esta parte é só para controle interno. Ela é guardada fora do site e não faz parte do artigo.
+
+## Análise de Pontuação — [Título do Artigo]
+
+**Nota final: X,X / 10 — APROVADO (se ≥9,0) ou REPROVADO**
+
+| Critério | Peso | Nota | Justificativa |
+| Fontes oficiais | 2,0 | X,X | ... |
+| Segurança e responsabilidade | 2,0 | X,X | ... |
+| Precisão dos fatos | 1,5 | X,X | ... |
+| Intenção de busca e profundidade | 1,5 | X,X | ... |
+| SEO on-page | 1,0 | X,X | ... |
+| Estrutura e leitura | 1,0 | X,X | ... |
+| Originalidade e naturalidade | 1,0 | X,X | ... |
+| **Total** | **10,0** | **X,X** | |
+
+### Lacunas do topo cobertas
+| Lacuna | Coberta (sim/não) |
+|---|---|
+
+### Validação do Schema Markup
+| Campo | Status |
+|---|---|
+| @type MedicalWebPage | ✅/❌ |
+| datePublished com data de hoje | ✅/❌ |
+| about com MedicalCondition | ✅/❌ |
+| Sem CRM e sem example.com | ✅/❌ |
+
+Status: PRONTO PARA IMPORTAÇÃO (se nota ≥ 9,0)
+---
