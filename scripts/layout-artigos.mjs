@@ -35,7 +35,7 @@ export function dataPublicacao(html) {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : null;
 }
 
-export function aplicarLayout(html) {
+export function aplicarLayout(html, { comData = true } = {}) {
   // Já aplicado: não duplica cabeçalho, data nem rodapé
   if (html.includes(MARCA)) return html;
 
@@ -45,7 +45,7 @@ export function aplicarLayout(html) {
   saida = saida.replace(/<body[^>]*>/i, (tag) => tag + CABECALHO);
 
   // 2. Data visível logo após o primeiro título
-  const data = dataPublicacao(html);
+  const data = comData ? dataPublicacao(html) : null;
   if (data) {
     const linhaData = `\n<p ${MARCA} style="color:#666;font-size:.9rem;margin-top:-8px;margin-bottom:24px;">Publicado em ${data}</p>`;
     saida = saida.replace(/<\/h1>/i, (tag) => tag + linhaData);
@@ -55,4 +55,13 @@ export function aplicarLayout(html) {
   saida = saida.replace(/<\/body>/i, RODAPE + '\n</body>');
 
   return saida;
+}
+
+// Páginas institucionais em HTML estático (termos, aviso médico, afiliados):
+// troca o menu e o rodapé antigos pelo padrão do site.
+export function padronizarPagina(html) {
+  const semMenuAntigo = html
+    .replace(/<nav class="site-nav"[\s\S]*?<\/nav>/i, '')
+    .replace(/<footer class="site-footer"[\s\S]*?<\/footer>/i, '');
+  return aplicarLayout(semMenuAntigo, { comData: false });
 }
