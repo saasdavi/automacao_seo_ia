@@ -4,7 +4,7 @@ import { cpSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { gerarFeeds } from './scripts/gerar-feeds.mjs';
-import { aplicarLayout, padronizarPagina } from './scripts/layout-artigos.mjs';
+import { aplicarLayout, padronizarPagina, folhasDoSite } from './scripts/layout-artigos.mjs';
 
 // Os artigos ficam em dados/saida/html (fora de public/), então são copiados
 // para a raiz do build. Sem isso, os links dos cards apontam para 404.
@@ -15,6 +15,7 @@ const copiarArtigos = {
     'astro:build:done': ({ dir }) => {
       const origem = path.join(process.cwd(), 'dados', 'saida', 'html');
       const destino = fileURLToPath(dir);
+      const folhas = folhasDoSite(readFileSync(path.join(destino, 'index.html'), 'utf8'));
       for (const arquivo of readdirSync(origem)) {
         if (/^(art-.*|termos-de-uso|aviso-medico|divulgacao-afiliados)\.html$/.test(arquivo)) {
           const caminhoDestino = path.join(destino, arquivo);
@@ -23,7 +24,7 @@ const copiarArtigos = {
           const html = readFileSync(caminhoDestino, 'utf8');
           writeFileSync(
             caminhoDestino,
-            arquivo.startsWith('art-') ? aplicarLayout(html) : padronizarPagina(html),
+            arquivo.startsWith('art-') ? aplicarLayout(html, { folhas }) : padronizarPagina(html, folhas),
           );
         }
       }
