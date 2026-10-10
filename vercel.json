@@ -1,5 +1,4 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "ignoreCommand": "git log -1 --pretty=%s | grep -q '^🤖' && exit 0 || exit 1"
+  "outputDirectory": "dist"
 }
