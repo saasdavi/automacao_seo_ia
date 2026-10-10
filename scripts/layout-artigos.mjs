@@ -11,9 +11,9 @@ const CABECALHO = `
 </header>
 <nav ${MARCA} style="background:#f0f4f0;border-bottom:1px solid #dfe8df;padding:10px 20px;text-align:center;font-size:.95rem;">
   <a href="/" style="color:#006400;text-decoration:none;margin:0 8px;">Início</a> ·
-  <a href="/#artigos" style="color:#006400;text-decoration:none;margin:0 8px;">Todos os artigos</a> ·
   <a href="/sobre" style="color:#006400;text-decoration:none;margin:0 8px;">Sobre</a> ·
-  <a href="/contato" style="color:#006400;text-decoration:none;margin:0 8px;">Contato</a>
+  <a href="/contato" style="color:#006400;text-decoration:none;margin:0 8px;">Contato</a> ·
+  <a href="/politica-editorial" style="color:#006400;text-decoration:none;margin:0 8px;">Editorial</a>
 </nav>`;
 
 const RODAPE = `
