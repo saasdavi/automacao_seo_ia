@@ -3,9 +3,11 @@ import tailwindcss from '@tailwindcss/vite';
 import { cpSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { gerarFeeds } from './scripts/gerar-feeds.mjs';
 
 // Os artigos ficam em dados/saida/html (fora de public/), então são copiados
 // para a raiz do build. Sem isso, os links dos cards apontam para 404.
+// Depois da cópia, gera sitemap.xml, rss.xml e robots.txt.
 const copiarArtigos = {
   name: 'copiar-artigos',
   hooks: {
@@ -17,6 +19,7 @@ const copiarArtigos = {
           cpSync(path.join(origem, arquivo), path.join(destino, arquivo));
         }
       }
+      gerarFeeds(destino, origem);
     },
   },
 };
